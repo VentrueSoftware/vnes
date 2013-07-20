@@ -62,7 +62,10 @@ void Cpu_Run(void) {
     cpu.state = 1;
     while (cpu.state) {
         /* Handle next instruction */
-        if (!Dispatch_Opcode(Cpu_Fetch())) break;
+        if (!Dispatch_Opcode(Cpu_Fetch())) {
+			neslog("\n============[End of CPU Execution]===========\n");
+			break;
+		}
         
         /* Check scanline/interrupts */
     }

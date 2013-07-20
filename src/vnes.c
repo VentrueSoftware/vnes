@@ -27,8 +27,11 @@ int main(int argc, char **argv) {
     VNES_Init();
     Mem_Set(0x0000, 0x69);
     Mem_Set(0x0001, 0x50);
-    Mem_Set(0x0002, 0xE9);
-    Mem_Set(0x0003, 0x10);
+    Mem_Set(0x0002, 0x65);
+    Mem_Set(0x0003, 0x01);
+    Mem_Set(0x0004, 0x38);
+    Mem_Set(0x0005, 0xE9);
+    Mem_Set(0x0006, 0x10);
     Cpu_Run();
     Cpu_Dump();
     return 0;

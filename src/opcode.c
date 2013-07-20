@@ -15,6 +15,7 @@
 
 #include "opcode.h"
 #include "bitwise.h"
+#include "mem.h"
 #include "cpu.h"
 
 typedef void(*op_func)(u8);
@@ -40,6 +41,13 @@ const static u32 op_cyc[] = {
 };
 #undef OP
 
+/* Define addressing mode table */
+#define OP(name, mode, cycles) mode,
+const static u8 op_mode[] = {
+    OPCODE_LIST(OP)
+};
+#undef OP
+
 /* Define the string table of opcodes, for debugging purposes */
 #define OP(name, mode, cycles) #name,
 const static char *op_str[] = {
@@ -48,8 +56,8 @@ const static char *op_str[] = {
 #undef OP
 
 /* Declare a helper function for doing subtract with carry.  Why, you
- * might ask?  Well, CMP, CPX, CPY, and SBC all need it. */
-inline static u16 Do_Subtract(u8 a, u8 b, u8 c);
+ * might ask?  Well, ADC, CMP, CPX, CPY, and SBC will all use it. */
+inline static u8 Do_Add(u8 op1, u8 op2, u8 c);
 
 /* Okay, now let's get to dispatching the opcodes */
 VNES_Err Dispatch_Opcode(u8 opcode) {
@@ -68,9 +76,13 @@ extern cpu_6502 cpu;
 #define Y (cpu.y)
 #define S (cpu.s)
 #define P (cpu.p)
+#define PC (cpu.pc)
 
-#define GET_ADDRESS() 0 /* opcode_get_addr(mode) */
-#define GET_VALUE()   Cpu_Fetch() /* 0x30  opcode_get_value(mode) */
+#define GET_ADDRESS() Opcode_Get_Address(op_mode[opcode], 0)
+#define GET_VALUE()   Opcode_Get_Value(op_mode[opcode], 0)
+#define GET_ADDRESS1() Opcode_Get_Address(op_mode[opcode], 1)
+#define GET_VALUE1()   Opcode_Get_Value(op_mode[opcode], 1)
+
 
 #define GET(flag) FLAG_GET(P, flag)
 #define SET(flags) FLAG_SET(P, flags)
@@ -79,6 +91,70 @@ extern cpu_6502 cpu;
 #define FLG_NZ(val)       \
     FLG(!(val), FLG_ZERO);\
     FLG((val) & FLG_SIGN, FLG_SIGN)
+
+/* Obtain addresses and values based on addressing mode */
+static u16 Opcode_Get_Address(u8 mode, u8 cross) {
+	u16 addr = 0XFFFF;
+	u8 op1 = Cpu_Fetch();
+	u8 op2;
+	
+	switch (mode) {
+		case ZP:
+			return op1;
+		break;
+		case ZX:
+			return (op1 + X) % 0x0100;
+		break;
+		case ZY:
+			return (op1 + Y) % 0x0100;
+		break;
+		case RE:
+			return PC + op1 - 2;
+		break;
+		case AB:
+			op2 = Cpu_Fetch();
+			return TO_U16(op1, op2);
+		break;
+		case AX:
+			op2 = Cpu_Fetch();
+			/* Check for page crossing */
+			return TO_U16(op1, op2) + X;
+		break;
+		case AY:
+			op2 = Cpu_Fetch();
+			/* Check for page crossing */
+			return TO_U16(op1, op2) + Y;
+		break;
+		case IN:
+			op2 = Cpu_Fetch();
+			return Mem_Fetch16(TO_U16(op1, op2));
+		break;
+		case IX:
+			return Mem_Fetch16((u16)((op1 + X) % 0x0100));
+		break;
+		case IY:
+			/* Check for page crossing */
+			return Mem_Fetch16((u16)(op1)) + Y;
+		break;
+		default:
+			neslog("Bad addressing mode: %d\n", mode);
+	}
+	return addr;
+}
+
+static u8 Opcode_Get_Value(u8 mode, u8 cross) {
+	u16 addr;
+	switch (mode) {
+		case IM:
+			return Cpu_Fetch();
+		case AC:
+			return A;
+		default:
+			addr = Opcode_Get_Address(mode, cross);
+			return Mem_Fetch(addr);
+	}
+	return 0xFF;
+}
 
 /* Define a macro for opcodes to reduce overhead */
 #define DEFINE_OP(name) void Do_##name(u8 opcode)
@@ -95,18 +171,8 @@ DEFINE_OP(UNS) {}
  * Flags Affected: C, Z, V, N */
 DEFINE_OP(ADC) {
     register u8 v = GET_VALUE();
-    register u8 c = GET(FLG_CARRY);
-    register u16 s = (u16)A + (u16)v + (u16)c;
-    
-    /* Update Overflow and carry.  Overflow is a bit tricky. */
-    FLG((A ^ s) & (v ^ s) & 0x80, FLG_OVERFLOW);
-    FLG((s > 0xFF), FLG_CARRY);
-    
-    /* Assign value */
-    A = (u8)s;
+	A = Do_Add(A, v, (P & FLG_CARRY));
 
-    /* Update N and Z */
-    FLG_NZ(A);
     Cpu_Dump();
 }
 
@@ -249,10 +315,10 @@ DEFINE_OP(CLV) {
  * Flags Affected: C, Z, N */ 
 DEFINE_OP(CMP) {
     register u8 v = GET_VALUE();
-    
-    FLG((Do_Subtract(A, v, 1) & FLG_SIGN), FLG_SIGN);
-    FLG((A == v), FLG_ZERO);
-    FLG((A >= v), FLG_CARRY);
+    register u8 vflag = GET(FLG_OVERFLOW);	/* V doesn't change */
+    Do_Add(A, ~v, 1);
+
+	FLG(vflag, FLG_OVERFLOW);
 }
 
 /* opcode: CPX
@@ -262,10 +328,10 @@ DEFINE_OP(CMP) {
  * Flags Affected: C, Z, N */ 
 DEFINE_OP(CPX) {
     register u8 v = GET_VALUE();
-    
-    FLG((Do_Subtract(X, v, 1) & FLG_SIGN), FLG_SIGN);
-    FLG((X == v), FLG_ZERO);
-    FLG((X >= v), FLG_CARRY);
+    register u8 vflag = GET(FLG_OVERFLOW);	/* V doesn't change */
+    Do_Add(X, ~v, 1);
+
+	FLG(vflag, FLG_OVERFLOW);
 }
 
 /* opcode: CPY
@@ -275,10 +341,10 @@ DEFINE_OP(CPX) {
  * Flags Affected: C, Z, N */ 
 DEFINE_OP(CPY) {
     register u8 v = GET_VALUE();
-    
-    FLG((Do_Subtract(Y, v, 1) & FLG_SIGN), FLG_SIGN);
-    FLG((Y == v), FLG_ZERO);
-    FLG((Y >= v), FLG_CARRY);
+    register u8 vflag = GET(FLG_OVERFLOW);	/* V doesn't change */
+    Do_Add(Y, ~v, 1);
+
+	FLG(vflag, FLG_OVERFLOW);
 }
 
 /* opcode: DEC
@@ -488,8 +554,7 @@ DEFINE_OP(RTS) {}
  * Flags Affected: C, Z, N, V */ 
 DEFINE_OP(SBC) {
     register u8 v = GET_VALUE();
-    register u8 d = Do_Subtract(A, v, GET(FLG_CARRY));
-    A = d;
+    A = Do_Add(A, ~v, (P & FLG_CARRY));
     Cpu_Dump();
 }
 
@@ -608,18 +673,30 @@ DEFINE_OP(TYA) {
 
 
 /* We might use these somewhere else, so undefine them. */
+
+/* Do the addition */
+inline static u8 Do_Add(u8 op1, u8 op2, u8 c) {
+    register u16 s = (u16)op1 + (u16)op2 + (u16)c;
+    
+    /* Update Overflow and carry.  Overflow is a bit tricky. */
+    FLG((op1 ^ s) & (op2 ^ s) & 0x80, FLG_OVERFLOW);
+    FLG((s > 0xFF), FLG_CARRY);
+    
+    /* Update N and Z */
+    FLG_NZ(s);
+    
+    return (u8)s;
+}
+
 #undef A
 #undef X
 #undef Y
 #undef S
 #undef P
+#undef PC
 
 #undef SET
 #undef CLR
 #undef FLG
+#undef FLG_NZ
 
-/* Define our subtraction helper function */
-inline static u16 Do_Subtract(u8 a, u8 b, u8 c) {
-    register u16 r = (u16)a + (((u16)b) ^ 0x00FF) + (u16)(c);
-    return r;
-}
