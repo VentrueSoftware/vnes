@@ -27,6 +27,8 @@
 #define FLAG_COND(cond, var, flags) \
     (cond) ? FLAG_SET(var, flags) : FLAG_CLEAR(var, flags)
 
+#define PAGE_OF(x) \
+	((x) & 0xFF00)
 
 /* Byte-related manipulation */
 #define TO_U16(lb, ub) \

@@ -92,6 +92,8 @@ extern cpu_6502 cpu;
     FLG(!(val), FLG_ZERO);\
     FLG((val) & FLG_SIGN, FLG_SIGN)
 
+
+
 /* Obtain addresses and values based on addressing mode */
 static u16 Opcode_Get_Address(u8 mode, u8 cross) {
 	u16 addr = 0XFFFF;
@@ -112,29 +114,37 @@ static u16 Opcode_Get_Address(u8 mode, u8 cross) {
 			return PC + op1 - 2;
 		break;
 		case AB:
-			op2 = Cpu_Fetch();
-			return TO_U16(op1, op2);
+			return TO_U16(op1, Cpu_Fetch());
 		break;
 		case AX:
-			op2 = Cpu_Fetch();
+			addr = TO_U16(op1, op2);
 			/* Check for page crossing */
+			if (cross && (PAGE_OF(addr) != PAGE_OF(addr + X))) {
+				Cpu_Add_Cycles(1);
+			}
 			return TO_U16(op1, op2) + X;
 		break;
 		case AY:
-			op2 = Cpu_Fetch();
+			addr = TO_U16(op1, Cpu_Fetch);
 			/* Check for page crossing */
-			return TO_U16(op1, op2) + Y;
+			if (cross && (PAGE_OF(addr) != PAGE_OF(addr + Y))) {
+				Cpu_Add_Cycles(1);
+			}
+			return addr + Y;
 		break;
 		case IN:
-			op2 = Cpu_Fetch();
-			return Mem_Fetch16(TO_U16(op1, op2));
+			return Mem_Fetch16(TO_U16(op1, Cpu_Fetch()));
 		break;
 		case IX:
 			return Mem_Fetch16((u16)((op1 + X) % 0x0100));
 		break;
 		case IY:
 			/* Check for page crossing */
-			return Mem_Fetch16((u16)(op1)) + Y;
+			addr = Mem_Fetch16((u16)(op1));
+			if (cross && (PAGE_OF(addr) != PAGE_OF(addr + Y))) {
+				Cpu_Add_Cycles(1);
+			}
+			return addr + Y;
 		break;
 		default:
 			neslog("Bad addressing mode: %d\n", mode);
@@ -170,7 +180,7 @@ DEFINE_OP(UNS) {}
  * +1 on Page Cross: AX, AY, IY
  * Flags Affected: C, Z, V, N */
 DEFINE_OP(ADC) {
-    register u8 v = GET_VALUE();
+    register u8 v = GET_VALUE1();
 	A = Do_Add(A, v, (P & FLG_CARRY));
 
     Cpu_Dump();
@@ -182,7 +192,7 @@ DEFINE_OP(ADC) {
  * +1 on Page Cross: AX, AY, IY
  * Flags Affected: Z, N */ 
 DEFINE_OP(AND) {
-    A &= GET_VALUE();
+    A &= GET_VALUE1();
     
     /* Update flags */
     FLG_NZ(A);
