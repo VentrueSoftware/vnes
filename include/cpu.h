@@ -49,6 +49,8 @@ INLINED void Cpu_Reset(void);
 /* Byte fetching */
 INLINED u8 Cpu_Fetch(void);
 
+INLINED void Cpu_Add_Cycles(u32 cycles);
+
 void Cpu_Run(void);
 
 void Cpu_Dump(void);

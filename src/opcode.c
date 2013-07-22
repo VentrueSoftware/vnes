@@ -57,7 +57,13 @@ const static char *op_str[] = {
 
 /* Declare a helper function for doing subtract with carry.  Why, you
  * might ask?  Well, ADC, CMP, CPX, CPY, and SBC will all use it. */
-inline static u8 Do_Add(u8 op1, u8 op2, u8 c);
+INLINED static u8 Do_Add(u8 op1, u8 op2, u8 c);
+
+/* Helper function for branching; decreases verbosity of the source. */
+INLINED static void Do_Branch(u8 cond, u8 opcode);
+
+INLINED static void Push_Stack(u8 v);
+INLINED static u8 Pull_Stack();
 
 /* Okay, now let's get to dispatching the opcodes */
 VNES_Err Dispatch_Opcode(u8 opcode) {
@@ -78,11 +84,14 @@ extern cpu_6502 cpu;
 #define P (cpu.p)
 #define PC (cpu.pc)
 
-#define GET_ADDRESS() Opcode_Get_Address(op_mode[opcode], 0)
-#define GET_VALUE()   Opcode_Get_Value(op_mode[opcode], 0)
-#define GET_ADDRESS1() Opcode_Get_Address(op_mode[opcode], 1)
-#define GET_VALUE1()   Opcode_Get_Value(op_mode[opcode], 1)
+#define MODE (op_mode[opcode])
 
+#define GET_ADDRESS() Opcode_Get_Address(MODE, 0)
+#define GET_VALUE()   Opcode_Get_Value(MODE, 0)
+#define GET_ADDRESS1() Opcode_Get_Address(MODE, 1)
+#define GET_VALUE1()   Opcode_Get_Value(MODE, 1)
+
+#define STACK_PAGE 0x0100
 
 #define GET(flag) FLAG_GET(P, flag)
 #define SET(flags) FLAG_SET(P, flags)
@@ -92,13 +101,11 @@ extern cpu_6502 cpu;
     FLG(!(val), FLG_ZERO);\
     FLG((val) & FLG_SIGN, FLG_SIGN)
 
-
-
 /* Obtain addresses and values based on addressing mode */
 static u16 Opcode_Get_Address(u8 mode, u8 cross) {
 	u16 addr = 0XFFFF;
 	u8 op1 = Cpu_Fetch();
-	u8 op2;
+	//u8 op2;
 	
 	switch (mode) {
 		case ZP:
@@ -111,21 +118,21 @@ static u16 Opcode_Get_Address(u8 mode, u8 cross) {
 			return (op1 + Y) % 0x0100;
 		break;
 		case RE:
-			return PC + op1 - 2;
+			return PC + (i8)op1;
 		break;
 		case AB:
 			return TO_U16(op1, Cpu_Fetch());
 		break;
 		case AX:
-			addr = TO_U16(op1, op2);
+			addr = TO_U16(op1, Cpu_Fetch());
 			/* Check for page crossing */
 			if (cross && (PAGE_OF(addr) != PAGE_OF(addr + X))) {
 				Cpu_Add_Cycles(1);
 			}
-			return TO_U16(op1, op2) + X;
+			return addr + X;
 		break;
 		case AY:
-			addr = TO_U16(op1, Cpu_Fetch);
+			addr = TO_U16(op1, Cpu_Fetch());
 			/* Check for page crossing */
 			if (cross && (PAGE_OF(addr) != PAGE_OF(addr + Y))) {
 				Cpu_Add_Cycles(1);
@@ -133,6 +140,12 @@ static u16 Opcode_Get_Address(u8 mode, u8 cross) {
 			return addr + Y;
 		break;
 		case IN:
+            /* Indirect has a bug where it wraps to the same page for
+             * the jump vector if it falls on the boundary of a page. */
+            addr = TO_U16(op1, Cpu_Fetch());
+            if (op1 == 0xFF) {
+                return TO_U16(Mem_Fetch(addr), Mem_Fetch(addr & 0xFF00));
+            }
 			return Mem_Fetch16(TO_U16(op1, Cpu_Fetch()));
 		break;
 		case IX:
@@ -199,32 +212,40 @@ DEFINE_OP(AND) {
 }
 
 /* opcode: ASL
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(ASL) {}
+ * Description: Arithmetic shift left
+ * Address Modes: AC ZP ZX AB AX
+ * Flags Affected: C, Z, N */ 
+DEFINE_OP(ASL) {
+    /* No memory fetches needed in accumulator mode */
+    if (MODE == AC) {
+        FLG((A & FLG_SIGN), FLG_CARRY);
+        A <<= 1;
+        FLG_NZ(A);
+    } else {
+        /* Otherwise, we do a mem fetch and a mem set */
+        register u16 addr = GET_ADDRESS();
+        register u8 v = Mem_Fetch(addr);
+        FLG((v & FLG_SIGN), FLG_CARRY);
+        v <<= 1;
+        FLG_NZ(v);
+        Mem_Set(addr, v);
+    }
+}
 
 /* opcode: BCC
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BCC) {}
+ * Description: Branch if Carry Clear
+ * Address Modes: RE */
+DEFINE_OP(BCC) { Do_Branch(!(P & FLG_CARRY), opcode); }
 
 /* opcode: BCS
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BCS) {}
+ * Description: Branch if Carry Set
+ * Address Modes: RE */ 
+DEFINE_OP(BCS) { Do_Branch(P & FLG_CARRY, opcode); }
 
 /* opcode: BEQ
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BEQ) {}
+ * Description: Branch if Equal
+ * Address Modes: RE */ 
+DEFINE_OP(BEQ) { Do_Branch(P & FLG_ZERO, opcode); }
 
 /* opcode: BIT
  * Description: Bit test
@@ -241,25 +262,19 @@ DEFINE_OP(BIT) {
 }
 
 /* opcode: BMI
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BMI) {}
+ * Description: Branch if Minus (negative)
+ * Address Modes: RE */ 
+DEFINE_OP(BMI) { Do_Branch(P & FLG_SIGN, opcode); }
 
 /* opcode: BNE
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BNE) {}
+ * Description: Branch if not equal
+ * Address Modes: RE */ 
+DEFINE_OP(BNE) { Do_Branch(!(P & FLG_ZERO), opcode); }
 
 /* opcode: BPL
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BPL) {}
+ * Description: Branch if Plus (positive)
+ * Address Modes: RE */ 
+DEFINE_OP(BPL) { Do_Branch(!(P & FLG_SIGN), opcode); }
 
 /* opcode: BRK
  * Description: 
@@ -269,54 +284,38 @@ DEFINE_OP(BPL) {}
 DEFINE_OP(BRK) {}
 
 /* opcode: BVC
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BVC) {}
+ * Description: Branch if Overflow clear
+ * Address Modes: RE */ 
+DEFINE_OP(BVC) { Do_Branch(!(P & FLG_OVERFLOW), opcode); }
 
 /* opcode: BVS
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BVS) {}
+ * Description: Branch if Overflow set
+ * Address Modes: RE */ 
+DEFINE_OP(BVS) { Do_Branch(P & FLG_OVERFLOW, opcode); }
 
 /* opcode: CLC
  * Description: Clear Carry flag
  * Address Modes: IP
- * +1 On Page Cross: 
  * Flags Affected: C */ 
-DEFINE_OP(CLC) {
-    CLR(FLG_CARRY);
-}
+DEFINE_OP(CLC) { CLR(FLG_CARRY); }
 
 /* opcode: CLD
  * Description: Clear Decimal flag
  * Address Modes: IP
- * +1 On Page Cross: 
  * Flags Affected: D */ 
-DEFINE_OP(CLD) {
-    CLR(FLG_DECIMAL);
-}
+DEFINE_OP(CLD) { CLR(FLG_DECIMAL); }
 
 /* opcode: CLI
  * Description: Clear Interrupt Disable flag
  * Address Modes: IP
- * +1 On Page Cross: 
  * Flags Affected: I */ 
-DEFINE_OP(CLI) {
-    CLR(FLG_INT_DIS);
-}
+DEFINE_OP(CLI) { CLR(FLG_INT_DIS); }
 
 /* opcode: CLV
  * Description: Clear Overflow flag
  * Address Modes: IP
- * +1 On Page Cross: 
  * Flags Affected: V */ 
-DEFINE_OP(CLV) {
-    CLR(FLG_OVERFLOW);
-}
+DEFINE_OP(CLV) { CLR(FLG_OVERFLOW); }
 
 /* opcode: CMP
  * Description: Comparison - like a SBC, but doesn't store the value.
@@ -324,7 +323,7 @@ DEFINE_OP(CLV) {
  * +1 On Page Cross: AX, AY, IY
  * Flags Affected: C, Z, N */ 
 DEFINE_OP(CMP) {
-    register u8 v = GET_VALUE();
+    register u8 v = GET_VALUE1();
     register u8 vflag = GET(FLG_OVERFLOW);	/* V doesn't change */
     Do_Add(A, ~v, 1);
 
@@ -334,7 +333,6 @@ DEFINE_OP(CMP) {
 /* opcode: CPX
  * Description: Compare X register
  * Address Modes: IM, ZP, AB
- * +1 On Page Cross: 
  * Flags Affected: C, Z, N */ 
 DEFINE_OP(CPX) {
     register u8 v = GET_VALUE();
@@ -347,7 +345,6 @@ DEFINE_OP(CPX) {
 /* opcode: CPY
  * Description: Compare Y register
  * Address Modes: IM, ZP, AB
- * +1 On Page Cross: 
  * Flags Affected: C, Z, N */ 
 DEFINE_OP(CPY) {
     register u8 v = GET_VALUE();
@@ -358,11 +355,16 @@ DEFINE_OP(CPY) {
 }
 
 /* opcode: DEC
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(DEC) {}
+ * Description: Decreases contents of memory by 1
+ * Address Modes: ZP ZX AB AX
+ * Flags Affected: Z, N  */ 
+DEFINE_OP(DEC) {
+    register u16 addr = GET_ADDRESS();
+    register u8 v = Mem_Fetch(addr);
+    --v;
+    FLG_NZ(v);
+    Mem_Set(addr, v);
+}
 
 /* opcode: DEX
  * Description: Decrement X Register
@@ -390,18 +392,23 @@ DEFINE_OP(DEY) {
  * +1 On Page Cross: AX, AY, IY
  * Flags Affected: Z, N */ 
 DEFINE_OP(EOR) {
-    register u8 v = GET_VALUE();
+    register u8 v = GET_VALUE1();
     
     A ^= v;
     FLG_NZ(A);
 }
 
 /* opcode: INC
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(INC) {}
+ * Description: Increase contents of memory by 1
+ * Address Modes: ZP, ZX, AB, AX
+ * Flags Affected: Z, N */ 
+DEFINE_OP(INC) {
+    register u16 addr = GET_ADDRESS();
+    register u8 v = Mem_Fetch(addr);
+    ++v;
+    FLG_NZ(v);
+    Mem_Set(addr, v);
+}
 
 /* opcode: INX
  * Description: Increment X register
@@ -424,11 +431,11 @@ DEFINE_OP(INY) {
 }
 
 /* opcode: JMP
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(JMP) {}
+ * Description: Jump to target address
+ * Address Modes: AB IN */ 
+DEFINE_OP(JMP) {
+    PC = GET_ADDRESS();
+}
 
 /* opcode: JSR
  * Description: 
@@ -443,7 +450,7 @@ DEFINE_OP(JSR) {}
  * +1 On Page Cross: AX, AY, IY
  * Flags Affected: Z, N */ 
 DEFINE_OP(LDA) {
-    A = GET_VALUE();
+    A = GET_VALUE1();
     FLG_NZ(A);
 }
 
@@ -453,26 +460,40 @@ DEFINE_OP(LDA) {
  * +1 On Page Cross: AY
  * Flags Affected: N, Z */ 
 DEFINE_OP(LDX) {
-    X = GET_VALUE();
+    X = GET_VALUE1();
     FLG_NZ(X);
 }
 
 /* opcode: LDY
  * Description: Load Y register
  * Address Modes: IM, ZP, ZX, AB, X
- * +1 On Page Cross: AY
+ * +1 On Page Cross: AX
  * Flags Affected: N, Z */ 
 DEFINE_OP(LDY) {
-    Y = GET_VALUE();
+    Y = GET_VALUE1();
     FLG_NZ(Y);
 }
 
 /* opcode: LSR
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(LSR) {}
+ * Description: Logical shift right
+ * Address Modes: AC, ZP, ZX, AB, AX
+ * Flags Affected: C, Z, N */ 
+DEFINE_OP(LSR) {
+    /* No memory fetches needed if accumulator mode */
+    if (MODE == AC) {
+        FLG((A & FLG_CARRY), FLG_CARRY);
+        A >>= 1;
+        FLG_NZ(A);
+    } else {
+        /* Memory is fetched, in order to manipulate it. */
+        register u16 addr = GET_ADDRESS();
+        register u8 v = Mem_Fetch(addr);
+        FLG((v & FLG_CARRY), FLG_CARRY);
+        v >>= 1;
+        FLG_NZ(v);
+        Mem_Set(addr, v);
+    }
+}
 
 /* opcode: NOP
  * Description: 
@@ -487,61 +508,83 @@ DEFINE_OP(NOP) {}
  * +1 On Page Cross: AX, AY, IY
  * Flags Affected: Z, N */ 
 DEFINE_OP(ORA) {
-    register u8 v = GET_VALUE();
+    register u8 v = GET_VALUE1();
     A |= v;
     FLG_NZ(A);
 }
 
 /* opcode: PHA
- * Description: Push Accumulator
- * Address Modes: IP
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(PHA) {
-    //Stack_Push(A);
-}
+ * Description: Push Accumulator to stack
+ * Address Modes: IP */ 
+DEFINE_OP(PHA) { Push_Stack(A); }
 
 /* opcode: PHP
- * Description: Push Processor status
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(PHP) {
-    //Stack_Push(P);
-}
+ * Description: Push Processor status to stack
+ * Address Modes: IP */ 
+DEFINE_OP(PHP) { Push_Stack(P); }
 
 /* opcode: PLA
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
+ * Description: Pull Accumulator from stack
+ * Address Modes: IP
+ * Flags Affected: Z, N */ 
 DEFINE_OP(PLA) {
-    //A = Stack_Pull();
+    A = Pull_Stack();
     FLG_NZ(A);
 }
 
 /* opcode: PLP
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
+ * Description: Pull Processor status from stack
+ * Address Modes: IP
  * Flags Affected: ALLLLLL the flags! */ 
 DEFINE_OP(PLP) {
-    //P = Stack_Pull();
+    P = Pull_Stack();
 }
 
 /* opcode: ROL
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(ROL) {}
+ * Description: Rotate left
+ * Address Modes: AC, ZP, ZX, AB, AX
+ * Flags Affected: C, Z, N */ 
+DEFINE_OP(ROL) {
+    /* Save the old carry value for use in the rotation */
+    register u8 c = P & FLG_CARRY;
+    
+    /* If accumulator mode, no memory access required */
+    if (MODE == AC) {
+        FLG((A & FLG_SIGN), FLG_CARRY);
+        A = (A << 1) | c;
+        FLG_NZ(A);
+    } else {
+        register u16 addr = GET_ADDRESS();
+        register u8 v = Mem_Fetch(addr);
+        FLG((v & FLG_SIGN), FLG_CARRY);
+        v = (v << 1) | c;
+        FLG_NZ(v);
+        Mem_Set(addr, v);
+    }
+}
 
 /* opcode: ROR
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(ROR) {}
+ * Description: Rotate right
+ * Address Modes: AC, ZP, ZX, AB, AX
+ * Flags Affected: C, Z, N */ 
+DEFINE_OP(ROR) {
+    /* Save the old carry value for use in the rotation */
+    register u8 c = (P & FLG_CARRY) << 7;
+    
+    /* If accumulator mode, no memory access required */
+    if (MODE == AC) {
+        FLG((A & FLG_CARRY), FLG_CARRY);
+        A = (A >> 1) | c;
+        FLG_NZ(A);
+    } else {
+        register u16 addr = GET_ADDRESS();
+        register u8 v = Mem_Fetch(addr);
+        FLG((v & FLG_CARRY), FLG_CARRY);
+        v = (v >> 1) | c;
+        FLG_NZ(v);
+        Mem_Set(addr, v);
+    }
+}
 
 /* opcode: RTI
  * Description: 
@@ -597,20 +640,18 @@ DEFINE_OP(SEI) {
 
 /* opcode: STA
  * Description: Store Accumulator
- * Address Modes: ZP, ZX, AB, AX, AY, IX, IY
- * +1 On Page Cross: 
- * Flags Affected:  */ 
+ * Address Modes: ZP, ZX, AB, AX, AY, IX, IY */ 
 DEFINE_OP(STA) {
-    
+    register u16 addr = GET_ADDRESS();
+    Mem_Set(addr, A);
 }
 
 /* opcode: STX
  * Description: Store X register
- * Address Modes: ZP, ZY, AB
- * +1 On Page Cross: 
- * Flags Affected:  */ 
+ * Address Modes: ZP, ZY, AB */ 
 DEFINE_OP(STX) {
-    
+    register u16 addr = GET_ADDRESS();
+    Mem_Set(addr, X);
 }
 
 /* opcode: STY
@@ -619,7 +660,8 @@ DEFINE_OP(STX) {
  * +1 On Page Cross: 
  * Flags Affected:  */ 
 DEFINE_OP(STY) {
-
+    register u16 addr = GET_ADDRESS();
+    Mem_Set(addr, Y);
 }
 
 /* opcode: TAX
@@ -685,7 +727,7 @@ DEFINE_OP(TYA) {
 /* We might use these somewhere else, so undefine them. */
 
 /* Do the addition */
-inline static u8 Do_Add(u8 op1, u8 op2, u8 c) {
+INLINED static u8 Do_Add(u8 op1, u8 op2, u8 c) {
     register u16 s = (u16)op1 + (u16)op2 + (u16)c;
     
     /* Update Overflow and carry.  Overflow is a bit tricky. */
@@ -698,12 +740,36 @@ inline static u8 Do_Add(u8 op1, u8 op2, u8 c) {
     return (u8)s;
 }
 
+/* Do the branch - makes source code shorter */
+INLINED static void Do_Branch(u8 cond, u8 opcode) {
+    register u16 addr = GET_ADDRESS();
+    
+    /* Determine whether we take the branch. +1 cycle if branch taken. */
+    if (cond) {
+        /* If we're crossing a page, we add another cycle. */
+        Cpu_Add_Cycles((PAGE_OF(PC) == PAGE_OF(addr)) ? 1 : 2);
+        PC = addr;
+    }    
+}
+
+/* Stack-related functions */
+INLINED static void Push_Stack(u8 v) {
+    Mem_Set(STACK_PAGE | S, v);
+    S--;
+}
+
+INLINED static u8 Pull_Stack() {
+    return Mem_Fetch(STACK_PAGE | --S);
+}
+
 #undef A
 #undef X
 #undef Y
 #undef S
 #undef P
 #undef PC
+
+#undef MODE
 
 #undef SET
 #undef CLR

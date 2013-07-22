@@ -55,6 +55,10 @@ INLINED u8 Cpu_Fetch(void) {
     return Mem_Fetch(cpu.pc++);
 } 
 
+INLINED void Cpu_Add_Cycles(u32 cycles) {
+    cpu.cycles += cycles;
+}
+
 /* Func: VNES_Err Cpu_Run(void)
  * Desc: Runs the cpu, performing instructions, handling interrupts, and
  *       the like. */
