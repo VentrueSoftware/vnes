@@ -19,6 +19,28 @@
 #ifndef VNES_DBG_H
 #define VNES_DBG_H
 
+#include <curses.h>
+#include "types.h"
+
+/* Debugger structure */
+typedef struct vnes_dbg {
+    /* Overall terminal attributes */
+    struct {
+        int width;
+        int height;
+    } term;
+    
+    /* Memory viewer */
+    struct {
+        u16 base_addr;
+        u8 *datap;
+        int width;
+        int height;
+        WINDOW *win;
+    } memview;
+
+} vnes_dbg;
+
 /* Debugger windows and utilities - unsure what goes here yet. */
 void Initialize_Dbg(void);
 
