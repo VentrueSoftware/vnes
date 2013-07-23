@@ -22,6 +22,14 @@ typedef void(*op_func)(u8);
 
 /* Aren't X-macros great?  Saves us a lot of upkeep here. */
 
+/* Define mode length (number of bytes) */
+#define mode(name, length) length,
+const static u8 mode_length[] = {
+    ADDRESS_MODES(mode)
+};
+#undef mode
+
+
 /* Define the function prototypes */
 #define OP(name, mode, cycles) void Do_##name(u8 opcode);
 OPCODE_LIST(OP)
@@ -43,14 +51,14 @@ const static u32 op_cyc[] = {
 
 /* Define addressing mode table */
 #define OP(name, mode, cycles) mode,
-const static u8 op_mode[] = {
+const u8 op_mode[] = {
     OPCODE_LIST(OP)
 };
 #undef OP
 
 /* Define the string table of opcodes, for debugging purposes */
 #define OP(name, mode, cycles) #name,
-const static char *op_str[] = {
+const char *op_str[] = {
     OPCODE_LIST(OP)
 };
 #undef OP
@@ -67,7 +75,6 @@ INLINED static u8 Pull_Stack();
 
 /* Okay, now let's get to dispatching the opcodes */
 VNES_Err Dispatch_Opcode(u8 opcode) {
-    printf("Opcode 0x%02X translates to %s\n", opcode, op_str[opcode]);
     op_fn[opcode](opcode);
     return op_cyc[opcode];
 }
@@ -100,6 +107,11 @@ extern cpu_6502 cpu;
 #define FLG_NZ(val)       \
     FLG(!(val), FLG_ZERO);\
     FLG((val) & FLG_SIGN, FLG_SIGN)
+
+/* Get opcode instruction length */
+u8 Get_Opcode_Length(u8 opcode) {
+    return mode_length[MODE];
+}
 
 /* Obtain addresses and values based on addressing mode */
 static u16 Opcode_Get_Address(u8 mode, u8 cross) {

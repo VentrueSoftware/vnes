@@ -16,6 +16,7 @@
 #include "types.h"
 #include "cpu.h"
 #include "mem.h"
+#include "dbg.h"
 
 void VNES_Init(void) {
     neslog("Starting emulation...");
@@ -32,7 +33,9 @@ int main(int argc, char **argv) {
     Mem_Set(0x0004, 0x38);
     Mem_Set(0x0005, 0xE9);
     Mem_Set(0x0006, 0x10);
-    Cpu_Run();
-    Cpu_Dump();
+    Mem_Set(0x0007, 0x4C);
+    Mem_Set(0x0008, 0x02);
+    Mem_Set(0x0009, 0x00);
+    Initialize_Dbg();
     return 0;
 }

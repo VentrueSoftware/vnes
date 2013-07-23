@@ -45,7 +45,7 @@ typedef int             i32;
 
 #endif /* #ifdef USE_STDINT */
 
-#define neslog printf
+#define neslog(...) /*printf*/
 
 #define VNES_Err int
 

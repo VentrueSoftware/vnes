@@ -59,6 +59,10 @@ INLINED void Cpu_Add_Cycles(u32 cycles) {
     cpu.cycles += cycles;
 }
 
+INLINED VNES_Err Cpu_Step(void) {
+    return Dispatch_Opcode(Cpu_Fetch());
+}
+
 /* Func: VNES_Err Cpu_Run(void)
  * Desc: Runs the cpu, performing instructions, handling interrupts, and
  *       the like. */
@@ -66,7 +70,7 @@ void Cpu_Run(void) {
     cpu.state = 1;
     while (cpu.state) {
         /* Handle next instruction */
-        if (!Dispatch_Opcode(Cpu_Fetch())) {
+        if (!Cpu_Step()) {
 			neslog("\n============[End of CPU Execution]===========\n");
 			break;
 		}
@@ -76,6 +80,7 @@ void Cpu_Run(void) {
 }
 
 void Cpu_Dump(void) {
+    return;
     printf(
         "[CPU] SV BDIZC\t  PC     A     X     Y     SP\n"
         "      %c%c%c%c%c%c%c%c\t0x%04X  0x%02X  0x%02X  0x%02X  0x%02X\n",

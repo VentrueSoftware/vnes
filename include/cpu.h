@@ -51,6 +51,8 @@ INLINED u8 Cpu_Fetch(void);
 
 INLINED void Cpu_Add_Cycles(u32 cycles);
 
+INLINED VNES_Err Cpu_Step(void);
+
 void Cpu_Run(void);
 
 void Cpu_Dump(void);

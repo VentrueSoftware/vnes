@@ -33,7 +33,8 @@ typedef struct vnes_dbg {
     /* Memory viewer */
     struct {
         u16 base;
-        u8 *datap;
+        u16 size;
+        u8 *datap;  /* More efficient memory lookup */
         int width;
         int height;
         WINDOW *win;
@@ -41,7 +42,9 @@ typedef struct vnes_dbg {
 
 	/* CPU Info */
 	struct {
-		u16 pc;
+        u8 pc;
+		u8 inst[3];
+        u8 inst_size;
 		int width;
 		int height;
 		WINDOW *win;

@@ -56,6 +56,10 @@ INLINED void Mem_Set16(u16 address, u16 value) {
     Mem_Set(address, UB(value));
 }
 
+INLINED u8 *Mem_Get_Ptr(u16 address) {
+    return &(internal_mem[address % INTERNAL_MEM_SIZE]);
+}
+
 /* Dumps all of memory.  ALL of it. */
 void Mem_Dump(void) {
     u16 address = 0;

@@ -27,6 +27,8 @@ INLINED u16 Mem_Fetch16(u16 address);
 INLINED void Mem_Set(u16 address, u8 value);
 INLINED void Mem_Set16(u16 address, u16 value);
 
+INLINED u8 *Mem_Get_Ptr(u16 address);
+
 void Mem_Dump(void);
 
 #endif /* #ifndef VNES_MEM_H */

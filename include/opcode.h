@@ -24,6 +24,8 @@
 
 VNES_Err Dispatch_Opcode(u8 opcode);
 
+u8 Get_Opcode_Length(u8 opcode);
+
 /* Addressing mode shorthands */
 
 /* Implicit Mode
@@ -123,21 +125,26 @@ VNES_Err Dispatch_Opcode(u8 opcode);
  *      LDA ($A0),Y     ; Load a byte indirectly from ($00A0) + Y. */
 #define IY MODE_INDIRECT_INDEXED
 
+#define ADDRESS_MODES(apply)                                           \
+    apply(MODE_IMPLICIT, 1)                                            \
+    apply(MODE_ACCUMULATOR, 1)                                         \
+    apply(MODE_IMMEDIATE, 2)                                           \
+    apply(MODE_ZERO_PAGE, 2)                                           \
+    apply(MODE_ZERO_PAGE_X, 2)                                         \
+    apply(MODE_ZERO_PAGE_Y, 2)                                         \
+    apply(MODE_RELATIVE, 2)                                            \
+    apply(MODE_ABSOLUTE, 3)                                            \
+    apply(MODE_ABSOLUTE_X, 3)                                          \
+    apply(MODE_ABSOLUTE_Y, 3)                                          \
+    apply(MODE_INDIRECT, 3)                                            \
+    apply(MODE_INDEXED_INDIRECT, 2)                                    \
+    apply(MODE_INDIRECT_INDEXED, 2)                                     
+
+#define mode(name, length) name,
 enum {
-    MODE_IMPLICIT,
-    MODE_ACCUMULATOR,
-    MODE_IMMEDIATE,
-    MODE_ZERO_PAGE,
-    MODE_ZERO_PAGE_X,
-    MODE_ZERO_PAGE_Y,
-    MODE_RELATIVE,
-    MODE_ABSOLUTE,
-    MODE_ABSOLUTE_X,
-    MODE_ABSOLUTE_Y,
-    MODE_INDIRECT,
-    MODE_INDEXED_INDIRECT,
-    MODE_INDIRECT_INDEXED
+    ADDRESS_MODES(mode)
 } address_modes;
+#undef mode
 
 /* Used for distinguishing undocumented opcodes (set to 0). */
 #define _ 0
