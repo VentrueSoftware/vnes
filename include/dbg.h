@@ -32,13 +32,20 @@ typedef struct vnes_dbg {
     
     /* Memory viewer */
     struct {
-        u16 base_addr;
+        u16 base;
         u8 *datap;
         int width;
         int height;
         WINDOW *win;
-    } memview;
+    } mem;
 
+	/* CPU Info */
+	struct {
+		u16 pc;
+		int width;
+		int height;
+		WINDOW *win;
+	} cpu;
 } vnes_dbg;
 
 /* Debugger windows and utilities - unsure what goes here yet. */
