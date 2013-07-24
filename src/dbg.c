@@ -136,11 +136,11 @@ void Initialize_Dbg(void) {
 static void Initialize_Dbg_Windows(void) {
     getmaxyx(stdscr, dbg.term.height, dbg.term.width);
     
-    dbg.mem.win = newwin(12, 60, 1, 1);
+    dbg.mem.win = newwin(13, 60, 1, 1);
     dbg.mem.width = 60;
-    dbg.mem.height = 12;	
+    dbg.mem.height = 13;	
     
-    dbg.cpu.win = newwin(4, 60, 13, 1);
+    dbg.cpu.win = newwin(4, 60, 14, 1);
     dbg.cpu.width = 60;
     dbg.cpu.height = 12;  
 }
@@ -157,9 +157,9 @@ static void Redraw_Mem(void) {
     wbkgd(dbg.mem.win, COLOR_PAIR(1));
     wborder(dbg.mem.win, 0, 0, 0, 0, 0, 0, 0, 0);
     mvwprintw(dbg.mem.win, 0, (dbg.mem.width - sizeof(MEM_TITLE)) / 2, MEM_TITLE);
-    
+    mvwprintw(dbg.mem.win, 1, 1, " Offset   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
     for (i = 0; i < 10; i++) {
-        mvwprintw(dbg.mem.win, i + 1, 2, "0x%04x : ", dbg.mem.base + (i * 16));
+        mvwprintw(dbg.mem.win, i + 2, 2, "0x%04x : ", dbg.mem.base + (i * 16));
         for (j = 0; j < 16; j++) {
             int addr = dbg.mem.base + (i * 16) + j;
             if (pc_in_mem) {
@@ -169,7 +169,7 @@ static void Redraw_Mem(void) {
                     wattron(dbg.mem.win, COLOR_PAIR(2));
                 }
             }
-            mvwprintw(dbg.mem.win, i + 1, (j * 3) + 11, "%02x ", dbg.mem.datap[(i * 16) + j]);
+            mvwprintw(dbg.mem.win, i + 2, (j * 3) + 11, "%02x ", dbg.mem.datap[(i * 16) + j]);
             if (curr) wattroff(dbg.mem.win, COLOR_PAIR(2));
         }
     }
@@ -186,6 +186,10 @@ static void Redraw_Cpu(void) {
     dbg.cpu.pc = cpu.pc;
     dbg.cpu.inst[0] = Mem_Fetch(cpu.pc);
     dbg.cpu.inst_size = Get_Opcode_Length(dbg.cpu.inst[0]);
+    if (1) {
+        dbg.mem.base = cpu.pc & 0xFFF0;
+        dbg.mem.datap = Mem_Get_Ptr(dbg.mem.base);
+    }
 	wbkgd(dbg.cpu.win, COLOR_PAIR(1));
     wborder(dbg.cpu.win, 0, 0, 0, 0, 0, 0, 0, 0);
     mvwprintw(dbg.cpu.win, 0, (dbg.cpu.width - sizeof(CPU_TITLE)) / 2, CPU_TITLE);
