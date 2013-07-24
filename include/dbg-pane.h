@@ -58,9 +58,10 @@ typedef struct pane {
 /* Pane API */
 #define ROOT_PANE 0, (PANE_NO_BORDER | PANE_TITLE_LEFT), 0, 0, 0, 0
 pane *Pane_Create(pane *parent, int flags, int x, int y, int width, int height);
-void Pane_Delete(pane *p);
+int Pane_Delete(pane *p);
 
-int Pane_Title(pane *p, char *title);
+int Pane_Resize(pane *p);
+
 int Pane_Draw(pane *p);
 void Pane_Border(pane *p);
 

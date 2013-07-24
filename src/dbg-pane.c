@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "dbg-pane.h"
 
 
@@ -61,17 +62,43 @@ pane *Pane_Create(pane *parent, int flags, int x, int y, int width, int height) 
     }
     
     p->win = derwin(parent->win, p->ah, p->aw, p->ay, p->ax);
-    parent->children[parent->nchildren++] = p;
+    parent->children[(parent->nchildren)++] = p;
     return p;
 err:
     free(p);
     return 0;
 }
 
-int Pane_Title(pane *p, char *title) {
-    if (!p) return 0;
-    p->title = title;
-    return 1;
+int Pane_Delete(pane *p) {
+	int i;
+	if (!p) return 1;
+	for (i = 0; i < p->nchildren; i++) {
+		Pane_Delete(p->children[i]);
+	}
+	if (p->win != stdscr) delwin(p->win);
+	free(p);
+	return 1;
+}
+
+int Pane_Resize(pane *p) {
+	int i;
+	if (!p) return 1;
+	
+	if (p->win == stdscr) {
+		endwin();
+		refresh();
+	} else {
+		delwin(p->win);
+		p->win = derwin(p->parent->win, p->ah, p->aw, p->ay, p->ax);
+	}
+	
+	for (i = 0; i < p->nchildren; i++) {
+		Pane_Resize(p->children[i]);
+	}
+	
+	Pane_Draw(p);
+	
+	return 1;
 }
 
 int Pane_Draw(pane *p) {
@@ -96,7 +123,7 @@ int Pane_Draw(pane *p) {
     wrefresh(p->win);
 
     for (i = 0; i < p->nchildren; i++) {
-        if (!Pane_Draw(p->children[i])) return 0;
+		Pane_Draw(p->children[i]);
     }
         
     return 1;
