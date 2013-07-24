@@ -39,6 +39,8 @@
 #include "dbg-gui.h"
 #include "types.h"
 
+#define COLOR_HIGHLIGHT 2
+
 pane *pane_main, *pane_memframe, *pane_memdata, *pane_cpuinfo;
 
 void Resize_Dbg_Gui(int signal) {
@@ -59,7 +61,7 @@ void Init_Dbg_Gui(void) {
         start_color();
 
         init_pair(1, COLOR_WHITE,   COLOR_BLACK);
-        init_pair(2, COLOR_GREEN,  COLOR_BLACK);
+        init_pair(COLOR_HIGHLIGHT, COLOR_GREEN,  COLOR_BLACK);
     }
 
 	/* Set resize signal handler */
@@ -82,22 +84,29 @@ void Init_Dbg_Gui(void) {
 
 void Update_Memframe(u16 start) {
 	u16 i;
-	mvwprintw(pane_memframe->win, 1, 1, " Offset   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F ");
+	Pane_Mv_Print(pane_memframe, 1, 1, " Offset   00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F ");
 	for (i = 0; i < 10; i++) {
-		mvwprintw(pane_memframe->win, 3 + i, 1, " 0x%04X ", (u16)((start & 0xFFF0) + (i * 16)));
+		Pane_Mv_Print(pane_memframe, 3 + i, 1, " 0x%04X ", (u16)((start & 0xFFF0) + (i * 16)));
 	}
 	Pane_Draw(pane_memframe);
 }
 
-void Update_Memdata_Page(u8 *start, u16 range) {
-	u16 i;
-	for (i = 0; i < range && i < 16 * 10; i++) {
-		mvwprintw(pane_memdata->win, 1 + (i / 16), 2 + ((i % 16) * 3), "%02X ", start[i]);
-	}
+void Update_Memdata_Page(u8 *start, u8 *end) {
+	int i = 0;
+    if (end > start) {
+        for (; i < (u16)(end - start) && i < 16 * 10; i++) {
+            Pane_Mv_Print(pane_memdata, 1 + (i / 16), 2 + ((i % 16) * 3), "%02X ", start[i]);
+        }
+    }
 	for (; i < 16 * 10; i++) {
-		mvwprintw(pane_memdata->win, 1 + (i / 16), 2 + ((i % 16) * 3), "   ");
+		Pane_Mv_Print(pane_memdata, 1 + (i / 16), 2 + ((i % 16) * 3), "   ");
 	}
 	Pane_Draw(pane_memdata);
+}
+
+void Highlight_Inst(u16 offset, u16 length) {
+    Pane_Highlight(pane_memdata, 1 + (offset / 16), 1 + ((offset % 16) * 3), length * 3, COLOR_HIGHLIGHT);
+    Pane_Draw(pane_memdata);
 }
 
 u8 test[] = {
@@ -125,8 +134,8 @@ int main(int argc, char **argv) {
 	while(1) {
 		i+=16;
 		Update_Memframe(i);
-		r = ((i & 0xFFF0) > sizeof(test)) ? 0 : sizeof(test) - (i & 0xFFF0);
-		Update_Memdata_Page(test + (i & 0xFFF0), r);
+		Update_Memdata_Page(test + (i & 0xFFF0), test + sizeof(test));
+        Highlight_Inst(i / 16, i % 3);
 		wgetch(pane_memdata->win);
 	}
 }

@@ -55,8 +55,9 @@ typedef struct pane {
     int ah;    
 } pane;
 
-/* Pane API */
 #define ROOT_PANE 0, (PANE_NO_BORDER | PANE_TITLE_LEFT), 0, 0, 0, 0
+
+/* Pane API */
 pane *Pane_Create(pane *parent, int flags, int x, int y, int width, int height);
 int Pane_Delete(pane *p);
 
@@ -64,5 +65,13 @@ int Pane_Resize(pane *p);
 
 int Pane_Draw(pane *p);
 void Pane_Border(pane *p);
+
+/* Printing to pane */
+void Pane_Print(pane *p, const char *fmt, ...);
+void Pane_Mv_Print(pane *p, int x, int y, const char *fmt, ...);
+
+/* Highlight existing text */
+void Pane_Highlight(pane *p, int x, int y, int length, int color_pair);
+
 
 #endif /* #ifndef VNES_DBG_PANE_H */
