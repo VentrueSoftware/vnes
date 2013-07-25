@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 		i+=16;
 		Update_Memframe(i);
 		Update_Memdata_Page(test + (i & 0xFFF0), test + sizeof(test));
-        Highlight_Inst(i / 16, i % 3);
+        Highlight_Inst(i / 16, (i % 3) + 1);
 		wgetch(pane_memdata->win);
 	}
 }

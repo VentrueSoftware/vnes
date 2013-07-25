@@ -289,11 +289,17 @@ DEFINE_OP(BNE) { Do_Branch(!(P & FLG_ZERO), opcode); }
 DEFINE_OP(BPL) { Do_Branch(!(P & FLG_SIGN), opcode); }
 
 /* opcode: BRK
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(BRK) {}
+ * Description: Force interrupt
+ * Address Modes: IP
+ * Flags Affected: B */ 
+DEFINE_OP(BRK) {
+    Push_Stack((u8)(PC >> 8));
+    Push_Stack((u8)(PC & 0xFF));
+    Push_Stack(P);
+    SET(FLG_BRK);
+    
+    PC = Mem_Fetch16(0xFFFE);
+}
 
 /* opcode: BVC
  * Description: Branch if Overflow clear
@@ -450,11 +456,13 @@ DEFINE_OP(JMP) {
 }
 
 /* opcode: JSR
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(JSR) {}
+ * Description: Jump to Subroutine
+ * Address Modes: AB */ 
+DEFINE_OP(JSR) {
+    register u16 addr = GET_ADDRESS() - 1;
+    Push_Stack((u8)(addr >> 8));
+    Push_Stack((u8)(addr & 0xFF));
+}
 
 /* opcode: LDA
  * Description: Load Accumulator
@@ -599,18 +607,22 @@ DEFINE_OP(ROR) {
 }
 
 /* opcode: RTI
- * Description: 
- * Address Modes: 
- * +1 On Page Cross: 
- * Flags Affected:  */ 
-DEFINE_OP(RTI) {}
+ * Description: Return from Interrupt
+ * Address Modes: IP
+ * Flags Affected: All of them. */ 
+DEFINE_OP(RTI) {
+    P = Pull_Stack();
+    PC = (Pull_Stack() | (Pull_Stack() << 8));
+}
 
 /* opcode: RTS
- * Description: 
- * Address Modes: 
+ * Description: Return from Subroutine
+ * Address Modes: IP
  * +1 On Page Cross: 
  * Flags Affected:  */ 
-DEFINE_OP(RTS) {}
+DEFINE_OP(RTS) {
+    PC = (Pull_Stack() | (Pull_Stack() << 8)) + 1;
+}
 
 /* opcode: SBC
  * Description: Subtract with carry
