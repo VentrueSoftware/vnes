@@ -31,7 +31,7 @@ pane *Pane_Create(pane *parent, int flags, int x, int y, int width, int height) 
     /* Creation of the root pane is a bit different */
     if (!parent) {
         p->win = stdscr;
-        getmaxyx(stdscr, p->aw, p->ah);
+        getmaxyx(stdscr, p->ah, p->aw);
         p->flags = flags;
         return p;
     }
@@ -43,6 +43,19 @@ pane *Pane_Create(pane *parent, int flags, int x, int y, int width, int height) 
     p->parent = parent;
     p->flags = flags;
     
+    Pane_Set_Dimensions(p, x, y, width, height);
+
+    /* Create the WINDOW and attach it to the parent's children */
+    p->win = derwin(parent->win, p->ah, p->aw, p->ay, p->ax);
+    parent->children[(parent->nchildren)++] = p;
+    
+    return p;
+err:
+    free(p);
+    return 0;
+}
+
+void Pane_Set_Dimensions(pane *p, int x, int y, int width, int height) {
     /* Set the actual x, y, w, h values */
     switch ((p->x = x)) {
         case PANE_MERGE: p->ax = 0; break;
@@ -55,24 +68,15 @@ pane *Pane_Create(pane *parent, int flags, int x, int y, int width, int height) 
         default: p->ay = y;
     }
     switch ((p->w = width)) {
-        case PANE_MERGE: p->aw = parent->aw - p->ax; break;
-        case PANE_STRETCH: p->aw = parent->aw - p->ax - 1; break;
+        case PANE_MERGE: p->aw = p->parent->aw - p->ax; break;
+        case PANE_STRETCH: p->aw = p->parent->aw - p->ax - 1; break;
         default: p->aw = width;
     }
     switch ((p->h = height)) {
-        case PANE_MERGE: p->ah = parent->ah - p->ay; break;
-        case PANE_STRETCH: p->ah = parent->ah - p->ay - 1; break;
+        case PANE_MERGE: p->ah = p->parent->ah - p->ay; break;
+        case PANE_STRETCH: p->ah = p->parent->ah - p->ay - 1; break;
         default: p->ah = height;
     }
-    
-    /* Create the WINDOW and attach it to the parent's children */
-    p->win = derwin(parent->win, p->ah, p->aw, p->ay, p->ax);
-    parent->children[(parent->nchildren)++] = p;
-    
-    return p;
-err:
-    free(p);
-    return 0;
 }
 
 int Pane_Delete(pane *p) {
@@ -96,16 +100,22 @@ int Pane_Resize(pane *p) {
 	
 	if (p->win == stdscr) {
 		endwin();
+        getmaxyx(stdscr, p->ah, p->aw);
 		refresh();
 	} else {
+        wresize(p->win, p->h, p->w);
+#if 0
 		delwin(p->win);
+        wres
+        Pane_Set_Dimensions(p, p->x, p->y, p->w, p->h);
 		p->win = derwin(p->parent->win, p->ah, p->aw, p->ay, p->ax);
+#endif 
 	}
 	
 	for (i = 0; i < p->nchildren; i++) {
 		Pane_Resize(p->children[i]);
 	}
-	
+	//werase(p->win);
 	Pane_Draw(p);
 	
 	return 1;
@@ -128,6 +138,8 @@ int Pane_Draw(pane *p) {
         else offset = (p->aw - strlen(p->title)) / 2;
         mvwprintw(p->win, 0, offset, p->title);
     }
+    
+    wprintw(p->win, " %dx%d", p->aw, p->ah);
     
     
     wrefresh(p->win);

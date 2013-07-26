@@ -55,11 +55,13 @@ typedef struct pane {
     int ah;    
 } pane;
 
-#define ROOT_PANE 0, (PANE_NO_BORDER | PANE_TITLE_LEFT), 0, 0, 0, 0
+#define ROOT_PANE 0, (PANE_TITLE_LEFT), 0, 0, 0, 0
 
 /* Pane API */
 pane *Pane_Create(pane *parent, int flags, int x, int y, int width, int height);
 int Pane_Delete(pane *p);
+
+void Pane_Set_Dimensions(pane *p, int x, int y, int width, int height);
 
 int Pane_Resize(pane *p);
 

@@ -45,6 +45,7 @@ pane *pane_main, *pane_memframe, *pane_memdata, *pane_cpuinfo;
 
 void Resize_Dbg_Gui(int signal) {
 	Pane_Resize(pane_main);
+    Pane_Draw(pane_main);
 }
 
 void Init_Dbg_Gui(void) {
@@ -69,7 +70,7 @@ void Init_Dbg_Gui(void) {
 
 	/* Create the panes */
     pane_main = Pane_Create(ROOT_PANE);
-    pane_memframe = Pane_Create(pane_main, 0, 1, 1, 60, 14);
+    pane_memframe = Pane_Create(pane_main, 0, 1, 1, PANE_STRETCH, 14);
     pane_memdata = Pane_Create(pane_memframe, 0, 9, 2, PANE_MERGE, PANE_MERGE);
     pane_cpuinfo = Pane_Create(pane_main, 0, 1, 15, 60, 4);
 
@@ -129,7 +130,7 @@ u8 test[] = {
 };
 
 int main(int argc, char **argv) {
-	u16 i = 0, r;
+	u16 i = 0;
 	Init_Dbg_Gui();
 	while(1) {
 		i+=16;

@@ -47,4 +47,6 @@ struct vnes_icart {
     
 };
 
+vnes_icart *Load_Cartridge(char *filename);
+
 #endif /* #ifndef VNES_CART_H */

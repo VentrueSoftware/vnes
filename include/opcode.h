@@ -146,6 +146,8 @@ enum {
 } address_modes;
 #undef mode
 
+typedef void(*op_func)(u8);
+
 /* Used for distinguishing undocumented opcodes (set to 0). */
 #define _ 0
 

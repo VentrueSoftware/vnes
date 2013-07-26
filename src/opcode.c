@@ -18,13 +18,11 @@
 #include "mem.h"
 #include "cpu.h"
 
-typedef void(*op_func)(u8);
-
 /* Aren't X-macros great?  Saves us a lot of upkeep here. */
 
 /* Define mode length (number of bytes) */
 #define mode(name, length) length,
-const static u8 mode_length[] = {
+const u8 mode_length[] = {
     ADDRESS_MODES(mode)
 };
 #undef mode
@@ -37,7 +35,7 @@ OPCODE_LIST(OP)
 
 /* Define the jump table */
 #define OP(name, mode, cycles) Do_##name,
-const static op_func op_fn[] = {
+const op_func op_fn[] = {
     OPCODE_LIST(OP)
 };
 #undef OP

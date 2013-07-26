@@ -7,6 +7,19 @@
 
 TOP_DIR  = $(shell pwd)
 
+TARGETS = vnes    \
+		  dbg-gui
+
+ifeq ($(MAKECMDGOALS), dbg-gui)
+TARGET_NAME      = dbg-gui
+TARGET_DIR       = $(TOP_DIR)
+TARGET_SRC_DIR   = $(TARGET_DIR)/src
+TARGET_INC_DIR   = $(TARGET_DIR)/include
+TARGET_OBJ_DIR   = $(TARGET_DIR)/obj
+TARGET_DIST_DIR  = $(TARGET_DIR)/dist
+TARGET_SRC_FILES = dbg-pane.c  	\
+                   dbg-gui.c  	
+else
 TARGET_NAME      = vnes
 TARGET_DIR       = $(TOP_DIR)
 TARGET_SRC_DIR   = $(TARGET_DIR)/src
@@ -18,8 +31,7 @@ TARGET_SRC_FILES = cpu.c  	\
                    opcode.c	\
                    vnes.c	\
                    dbg.c
-
-
+endif
 
 # Create ltarget dependency and object names
 TARGET_SRC = $(addprefix $(TARGET_SRC_DIR)/, $(TARGET_SRC_FILES))
@@ -40,7 +52,8 @@ V=@
 
 #============ Build Targets ============#
 
-.PHONY: bin
+#.PHONY: bin
+$(TARGETS): bin
 
 # Build the binary
 bin: bin-intro target

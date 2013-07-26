@@ -37,6 +37,6 @@ int main(int argc, char **argv) {
     //Mem_Set(0x0007, 0x4C);
     //Mem_Set(0x0008, 0x02);
     //Mem_Set(0x0009, 0x00);
-    Initialize_Dbg();
+    Start_Dbg();
     return 0;
 }
