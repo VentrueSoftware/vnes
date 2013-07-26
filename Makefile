@@ -16,7 +16,8 @@ TARGET_DIST_DIR  = $(TARGET_DIR)/dist
 TARGET_SRC_FILES = cpu.c  	\
                    mem.c  	\
                    opcode.c	\
-                   vnes.c
+                   vnes.c	\
+                   dbg.c
 
 
 
@@ -28,7 +29,7 @@ TARGET_OBJ = $(addprefix $(TARGET_OBJ_DIR)/, $(TARGET_SRC_FILES:.c=.o))
 CC       = gcc
 CFLAGS   = -Wall
 INCLUDES = $(addprefix -I, $(TARGET_INC_DIR))
-LIBS     =
+LIBS     = -lncurses
 DEFS     = -DUSE_INLINING
 
 #============ Linker Definitions ===========#
