@@ -74,7 +74,8 @@ INLINED static u8 Pull_Stack();
 /* Okay, now let's get to dispatching the opcodes */
 VNES_Err Dispatch_Opcode(u8 opcode) {
     op_fn[opcode](opcode);
-    return op_cyc[opcode];
+    Cpu_Add_Cycles(op_cyc[opcode]);
+    return 1;
 }
 
 /********* Begin the tediousness that is opcode definition ***********/

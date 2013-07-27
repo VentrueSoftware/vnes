@@ -30,6 +30,10 @@
 #define MAX_ASM_LEN 16
 static char asmstrbuf__[MAX_ASM_LEN];
 
+/* ncurses windows */
+static WINDOW *logwin;
+static WINDOW *statline;
+
 /* From opcode.c */
 extern const char *op_str[];
 extern const u8 op_mode[];
@@ -40,6 +44,8 @@ extern const op_func op_fn[];
 extern cpu_6502 cpu;
 
 void End_Dbg(int signal) {
+    delwin(logwin);
+    delwin(statline);
     endwin();
     exit(0);
 }
@@ -81,19 +87,34 @@ void Log_Instruction(void) {
     }
     for (; i < 3; i++) {
         sprintf(line + 5 + (3 * i), "   ");
-    sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:XXX SL:XXX",
+    sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:XXX",
         Stringify_Instruction(ops, len),
-        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s);
+        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, (cpu.cycles * 3) % 339);
     }
-    printw("%s\n", line);
-    refresh();
+    wprintw(logwin, "%s\n", line);
+    wrefresh(logwin);
+
+    wbkgd(statline, A_REVERSE);
+    mvwprintw(statline, 0, 0, "VNES debugger");
+    wrefresh(statline);
 }
 
 void Start_Dbg(void) {
-    int cmd = 0;
+    int cmd = 0, x, y;
     signal(SIGINT, End_Dbg);
+    
+    //Ini
     initscr();
     noecho();
+    curs_set(0);
+    
+    getmaxyx(stdscr, y, x);
+    
+    logwin = newwin(y, x, 0, 0);
+    statline = newwin(1, x, y - 1, 0);
+    
+    scrollok(logwin, TRUE);
+    refresh();
     
     Log_Instruction();
     
