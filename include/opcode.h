@@ -187,7 +187,7 @@ typedef void(*op_func)(u8);
 /*        30*            31*            32             33 */           \
        op(BMI, RE, 2) op(AND, IY, 5) op(UNS, IP, _) op(UNS, IP, _)     \
 /*        34             35             36             37 */           \
-       op(UNS, IP, _) op(AND, ZX, 4) op(ROL, ZX, 5) op(UNS, IP, _)     \
+       op(UNS, IP, _) op(AND, ZX, 4) op(ROL, ZX, 6) op(UNS, IP, _)     \
 /*        38             39*            3A             3B */           \
        op(SEC, IP, 2) op(AND, AY, 4) op(UNS, IP, _) op(UNS, IP, _)     \
 /*        3C             3D*            3E             3F */           \
@@ -290,7 +290,7 @@ typedef void(*op_func)(u8);
 /*        E8             E9             EA             EB */           \
        op(INX, IP, 2) op(SBC, IM, 2) op(NOP, IP, 2) op(UNS, IP, _)     \
 /*        EC             ED             EE             EF */           \
-       op(CPX, AB, 4) op(SBC, AB, 0) op(INC, AB, 6) op(UNS, IP, _)     \
+       op(CPX, AB, 4) op(SBC, AB, 4) op(INC, AB, 6) op(UNS, IP, _)     \
                                                                        \
 /*        F0*            F1*            F2             F3 */           \
        op(BEQ, RE, 2) op(SBC, IY, 5) op(UNS, IP, _) op(UNS, IP, _)     \

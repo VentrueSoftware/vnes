@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     if (argc > 1) {
 		if (0 == strcmp(argv[1], "--nestest")) {
 			extern cpu_6502 cpu;
-			Load_Cartridge("tests/nestest.nes");
+			Load_Cartridge("roms/nestest.nes");
 			VNES_Init();
 			cpu.pc = 0xC000;
 		} else {

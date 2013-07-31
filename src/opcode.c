@@ -116,7 +116,6 @@ u8 Get_Opcode_Length(u8 opcode) {
 static u16 Opcode_Get_Address(u8 mode, u8 cross) {
 	u16 addr = 0XFFFF;
 	u8 op1 = Cpu_Fetch();
-	//u8 op2;
 	
 	switch (mode) {
 		case ZP:
@@ -157,14 +156,14 @@ static u16 Opcode_Get_Address(u8 mode, u8 cross) {
             if (op1 == 0xFF) {
                 return TO_U16(Mem_Fetch(addr), Mem_Fetch(addr & 0xFF00));
             }
-			return Mem_Fetch16(TO_U16(op1, Cpu_Fetch()));
+			return Mem_Fetch16(addr);
 		break;
 		case IX:
 			return TO_U16(Mem_Fetch((u16)((op1 + X) % 0x0100)), Mem_Fetch((u16)((op1 + X + 1) % 0x0100)));
 		break;
 		case IY:
 			/* Check for page crossing */
-			addr = Mem_Fetch16((u16)(op1));
+			addr = TO_U16(Mem_Fetch(((u16)(op1)) % 0x0100), Mem_Fetch(((u16)(op1 + 1)) % 0x0100));
 			if (cross && (PAGE_OF(addr) != PAGE_OF(addr + Y))) {
 				Cpu_Add_Cycles(1);
 			}
@@ -611,7 +610,7 @@ DEFINE_OP(ROR) {
  * Address Modes: IP
  * Flags Affected: All of them. */ 
 DEFINE_OP(RTI) {
-    P = Pull_Stack();
+    P = Pull_Stack() | FLG_NOT_USED;
     PC = (Pull_Stack() | (Pull_Stack() << 8));
 }
 
