@@ -16,6 +16,7 @@
  *          only for things like hiding input and minor formatting.
  */
 
+#include <errno.h>
 #include <curses.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -29,6 +30,12 @@
 /* Static buffer for stringifying an instruction */
 #define MAX_ASM_LEN 16
 static char asmstrbuf__[MAX_ASM_LEN];
+
+/* File for storing log data */
+static const char *logfilename = ".vnes.log";
+static FILE *logfp;
+static long buffer_top;
+static long buffer_bottom;
 
 /* ncurses windows */
 static WINDOW *logwin;
@@ -47,6 +54,7 @@ void End_Dbg(int signal) {
     delwin(logwin);
     delwin(statline);
     endwin();
+    fclose(logfp);
     exit(0);
 }
 
@@ -97,6 +105,7 @@ void Log_Instruction(void) {
 
     wbkgd(statline, A_REVERSE);
     mvwprintw(statline, 0, 0, "VNES debugger");
+    fprintf(logfp, "%s\n", line);
     wrefresh(statline);
 }
 
@@ -108,7 +117,8 @@ void Start_Dbg(void) {
     initscr();
     noecho();
     curs_set(0);
-    
+    keypad(stdscr, TRUE);
+    logfp = fopen(logfilename, "w+");
     getmaxyx(stdscr, y, x);
     
     logwin = newwin(y, x, 0, 0);
@@ -116,6 +126,14 @@ void Start_Dbg(void) {
     
     scrollok(logwin, TRUE);
     refresh();
+
+    if (!logfp) {
+		wbkgd(statline, A_REVERSE);
+		wprintw(statline, "Error opening log: %s\n", strerror(errno));
+		wrefresh(statline);
+		getch();
+		End_Dbg(0);
+	}
     
     Log_Instruction();
     

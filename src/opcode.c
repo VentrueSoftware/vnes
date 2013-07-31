@@ -160,7 +160,7 @@ static u16 Opcode_Get_Address(u8 mode, u8 cross) {
 			return Mem_Fetch16(TO_U16(op1, Cpu_Fetch()));
 		break;
 		case IX:
-			return Mem_Fetch16((u16)((op1 + X) % 0x0100));
+			return TO_U16(Mem_Fetch((u16)((op1 + X) % 0x0100)), Mem_Fetch((u16)((op1 + X + 1) % 0x0100)));
 		break;
 		case IY:
 			/* Check for page crossing */
@@ -541,7 +541,7 @@ DEFINE_OP(PHA) { Push_Stack(A); }
 /* opcode: PHP
  * Description: Push Processor status to stack
  * Address Modes: IP */ 
-DEFINE_OP(PHP) { Push_Stack(P); }
+DEFINE_OP(PHP) { Push_Stack(P | FLG_BRK); }
 
 /* opcode: PLA
  * Description: Pull Accumulator from stack
@@ -557,7 +557,7 @@ DEFINE_OP(PLA) {
  * Address Modes: IP
  * Flags Affected: ALLLLLL the flags! */ 
 DEFINE_OP(PLP) {
-    P = Pull_Stack();
+    P = (Pull_Stack() & ~FLG_BRK) | FLG_NOT_USED;
 }
 
 /* opcode: ROL
@@ -621,7 +621,9 @@ DEFINE_OP(RTI) {
  * +1 On Page Cross: 
  * Flags Affected:  */ 
 DEFINE_OP(RTS) {
-    PC = (Pull_Stack() | (Pull_Stack() << 8)) + 1;
+	u16 addr = Pull_Stack();
+	addr |= (u16)(Pull_Stack()) << 8;
+    PC = addr + 1;
 }
 
 /* opcode: SBC
@@ -759,7 +761,7 @@ INLINED static u8 Do_Add(u8 op1, u8 op2, u8 c) {
     FLG((s > 0xFF), FLG_CARRY);
     
     /* Update N and Z */
-    FLG_NZ(s);
+    FLG_NZ((u8)s);
     
     return (u8)s;
 }
@@ -783,7 +785,7 @@ INLINED static void Push_Stack(u8 v) {
 }
 
 INLINED static u8 Pull_Stack() {
-    return Mem_Fetch(STACK_PAGE | --S);
+    return Mem_Fetch(STACK_PAGE | ++S);
 }
 
 #undef A
