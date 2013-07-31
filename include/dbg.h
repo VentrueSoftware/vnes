@@ -9,11 +9,11 @@
  *      VNES Emulator debug console.
  * 
  * Change Log:
- *      22-Jul-2013:
- *          File created.
  *      26-Jul-2013:
  *          Removed ncurses GUI requirement.  It still uses ncurses, but
  *          only for things like hiding input and minor formatting.
+ *      22-Jul-2013:
+ *          File created.
  */
 
 #ifndef VNES_DBG_H

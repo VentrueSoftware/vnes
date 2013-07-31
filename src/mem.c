@@ -15,6 +15,7 @@
 
 #include "mem.h"
 #include "bitwise.h"
+#include "cart.h"
 #include <string.h>
 
 #define INTERNAL_MEM_SIZE 0x800
@@ -38,7 +39,10 @@ INLINED void Mem_Reset(void) {
 
 INLINED u8 Mem_Fetch(u16 address) {
     /* Memory mapping should go here, as things are implemented. */
-    return internal_mem[address % INTERNAL_MEM_SIZE];
+    if (address < 0x2000) return internal_mem[address % INTERNAL_MEM_SIZE];
+    else if (address > 0x4020) return Read_Cartridge_Prg(address);
+    printf("Unassigned memory partition mapped.\n");
+    return 0x00;
 }
 
 INLINED u16 Mem_Fetch16(u16 address) {

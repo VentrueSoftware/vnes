@@ -87,10 +87,11 @@ void Log_Instruction(void) {
     }
     for (; i < 3; i++) {
         sprintf(line + 5 + (3 * i), "   ");
+    }
     sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:XXX",
         Stringify_Instruction(ops, len),
         cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, (cpu.cycles * 3) % 339);
-    }
+    
     wprintw(logwin, "%s\n", line);
     wrefresh(logwin);
 

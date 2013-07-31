@@ -8,18 +8,9 @@
 TOP_DIR  = $(shell pwd)
 
 TARGETS = vnes    \
-		  dbg-gui
+		  dbg-gui \
+		  loadtest
 
-ifeq ($(MAKECMDGOALS), dbg-gui)
-TARGET_NAME      = dbg-gui
-TARGET_DIR       = $(TOP_DIR)
-TARGET_SRC_DIR   = $(TARGET_DIR)/src
-TARGET_INC_DIR   = $(TARGET_DIR)/include
-TARGET_OBJ_DIR   = $(TARGET_DIR)/obj
-TARGET_DIST_DIR  = $(TARGET_DIR)/dist
-TARGET_SRC_FILES = dbg-pane.c  	\
-                   dbg-gui.c  	
-else
 TARGET_NAME      = vnes
 TARGET_DIR       = $(TOP_DIR)
 TARGET_SRC_DIR   = $(TARGET_DIR)/src
@@ -30,7 +21,31 @@ TARGET_SRC_FILES = cpu.c  	\
                    mem.c  	\
                    opcode.c	\
                    vnes.c	\
+                   cart.c	\
+                   ines-cart.c \
                    dbg.c
+
+ifeq ($(MAKECMDGOALS), dbg-gui)
+TARGET_NAME      = dbg-gui
+TARGET_DIR       = $(TOP_DIR)
+TARGET_SRC_DIR   = $(TARGET_DIR)/src
+TARGET_INC_DIR   = $(TARGET_DIR)/include
+TARGET_OBJ_DIR   = $(TARGET_DIR)/obj
+TARGET_DIST_DIR  = $(TARGET_DIR)/dist
+TARGET_SRC_FILES = dbg-pane.c  	\
+                   dbg-gui.c  	
+endif
+
+ifeq ($(MAKECMDGOALS), loadtest)
+TARGET_NAME      = loadtest
+TARGET_DIR       = $(TOP_DIR)
+TARGET_SRC_DIR   = $(TARGET_DIR)/src
+TARGET_INC_DIR   = $(TARGET_DIR)/include
+TARGET_OBJ_DIR   = $(TARGET_DIR)/obj
+TARGET_DIST_DIR  = $(TARGET_DIR)/dist
+TARGET_SRC_FILES = cart.c  	\
+                   ines-cart.c  \
+                   loadtest.c
 endif
 
 # Create ltarget dependency and object names

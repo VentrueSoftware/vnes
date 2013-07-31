@@ -23,7 +23,8 @@
 
 #define CPU_STACK_INIT 0xFD
 #define CPU_STATUS_INIT 0x34
-#define CPU_PC_RESET Mem_Fetch16(0xFFFC)
+#define CPU_PC_RESET 0xC000 
+// Mem_Fetch16(0xFFFC)
 
 /* Instance of the cpu */
 cpu_6502 cpu;

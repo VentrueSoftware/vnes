@@ -6,9 +6,12 @@
  * 
  * Description:
  * 
- *      Cartridge loader interface.
+ *      Cartridge load/access methods.
  * 
  * Change Log:
+ *      30-Jul-2013:
+ *          Moved cartridge interface to its own header file.  This file
+ *          only provides the wrappers to the cartridge.
  *      25-Jul-2013:
  *          File created.
  */
@@ -18,35 +21,14 @@
 
 #include "types.h"
 
-/* Forward declarations */
-struct vnes_icart;
-typedef struct vnes_icart vnes_icart;
-
-/* Read/write handler definitions */
-typedef u8 (*cart_read_fn)(vnes_icart, u16);
-typedef u8 (*cart_write_fn)(vnes_icart, u16);
-
-/* VNES Cartridge Interface.  VNES_CART_INTERFACE must be the first part
- * of any struct that implements a mapper for a particular cartridge.
- * This is quite flexible and can be extended to work with non iNES
- * formats (raw 6502 binaries, for instance). */
-struct vnes_icart {
-#define VNES_CART_INTERFACE                                            \
-    u8 mapper_id;                                                      \
-    u8 prg_pages;                                                      \
-    u8 chr_pages;                                                      \
-    u8 **prg_rom;                                                      \
-    u8 **chr_rom;                                                      \
-                                                                       \
-    /* Read/write function handlers */                                 \
-    cart_read_fn read_prg;                                             \
-    cart_read_fn read_chr;                                             \
-                                                                       \
-    cart_write_fn write_prg;                                           \
-    cart_write_fn write_chr;                                           \
-    
-};
-
 void Load_Cartridge(char *filename);
+
+u8 Read_Cartridge_Prg(u16 address);
+u8 Read_Cartridge_Chr(u16 address);
+
+u8 Write_Cartridge_Prg(u16 address, u8 value);
+u8 Write_Cartridge_Chr(u16 address, u8 value);
+
+void Unload_Cartridge(void);
 
 #endif /* #ifndef VNES_CART_H */

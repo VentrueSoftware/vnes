@@ -17,6 +17,7 @@
 #include "cpu.h"
 #include "mem.h"
 #include "dbg.h"
+#include "cart.h"
 
 void VNES_Init(void) {
     neslog("Starting emulation...");
@@ -25,18 +26,10 @@ void VNES_Init(void) {
 }
 
 int main(int argc, char **argv) {
+    if (argc > 1) {
+        Load_Cartridge(argv[1]);
+    }
     VNES_Init();
-    Mem_Set(0x0000, 0x69);
-    Mem_Set(0x0001, 0x50);
-    Mem_Set(0x0002, 0x65);
-    Mem_Set(0x0003, 0x01);
-    Mem_Set(0x0004, 0x38);
-    Mem_Set(0x0005, 0xE9);
-    Mem_Set(0x0006, 0x10);
-    Mem_Set(0x0007, 0x48);
-    //Mem_Set(0x0007, 0x4C);
-    //Mem_Set(0x0008, 0x02);
-    //Mem_Set(0x0009, 0x00);
     Start_Dbg();
     return 0;
 }

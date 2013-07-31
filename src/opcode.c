@@ -458,9 +458,10 @@ DEFINE_OP(JMP) {
  * Description: Jump to Subroutine
  * Address Modes: AB */ 
 DEFINE_OP(JSR) {
-    register u16 addr = GET_ADDRESS() - 1;
-    Push_Stack((u8)(addr >> 8));
-    Push_Stack((u8)(addr & 0xFF));
+    register u16 addr = GET_ADDRESS();
+    Push_Stack((u8)((PC - 1) >> 8));
+    Push_Stack((u8)((PC - 1) & 0xFF));
+    PC = addr;
 }
 
 /* opcode: LDA
