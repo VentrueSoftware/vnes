@@ -23,5 +23,8 @@
 
 /* Initialize Debugger */
 void Start_Dbg(void);
+void End_Dbg(int signal);
+
+void Show_Error(char *fmt, ...);
 
 #endif /* #ifndef VNES_DBG_H */

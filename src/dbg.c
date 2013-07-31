@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <curses.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <signal.h>
 #include <string.h>
 #include "dbg.h"
@@ -27,38 +28,147 @@
 #include "mem.h"
 #include "opcode.h"
 
-/* Static buffer for stringifying an instruction */
-#define MAX_ASM_LEN 16
-static char asmstrbuf__[MAX_ASM_LEN];
+#define INFO_COLOR 2
+#define ERROR_COLOR 3
 
-/* File for storing log data */
-static const char *logfilename = ".vnes.log";
-static FILE *logfp;
-static long buffer_top;
-static long buffer_bottom;
-
-/* ncurses windows */
-static WINDOW *logwin;
-static WINDOW *statline;
-
-/* From opcode.c */
+/* Useful globals from opcode.c */
 extern const char *op_str[];
 extern const u8 op_mode[];
 extern const u8 mode_length[];
 extern const op_func op_fn[];
 
-/* From cpu.c */
+/* Useful globals from cpu.c */
 extern cpu_6502 cpu;
 
+
+/* Static buffer for stringifying an instruction */
+#define MAX_ASM_LEN 16
+static char asmstrbuf__[MAX_ASM_LEN];
+
+/* File that acts as a buffer for the log. */
+static const char *logfilename = ".vnes.log";
+static FILE *logfp;
+
+/* ncurses windows */
+static WINDOW *logwin;
+static WINDOW *statline;
+
+static int error_attr;
+static int info_attr;
+
+/* Local function declarations */
+static void Init_Ncurses(void);
+static void Open_Log(void);
+static char *Stringify_Instruction(u8 *ops, u8 size);
+static void Log_Instruction(void);
+
+/* Start debugger console */
+void Start_Dbg(void) {
+    int cmd = 0;
+    signal(SIGINT, End_Dbg);
+    
+    Init_Ncurses();
+    Open_Log();
+    
+    Log_Instruction();
+    
+    //Accept_Dbg_Input();
+    while (cmd != 'q') {
+        cmd = getch();
+        switch (cmd) {
+            case 's': 
+                Cpu_Step();
+                Log_Instruction();
+            break;
+            case 'r': {
+                u8 op;
+                while (op_fn[(op = Mem_Fetch(cpu.pc))] != op_fn[0xFF]) {
+                    Cpu_Step();
+                    Log_Instruction();
+                }
+            }
+            default:
+            break;
+        }
+    }
+    End_Dbg(0);
+}
+
+/* End the debugger */
 void End_Dbg(int signal) {
+    /* Clean up the ncurses windows */
     delwin(logwin);
     delwin(statline);
     endwin();
-    fclose(logfp);
+    
+    /* Close the log */
+    if (logfp) fclose(logfp);
     exit(0);
 }
 
-static char *Stringify_Instruction(u8 *ops, u8 size);
+/* Report an error to the debug console */
+void Show_Error(char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    
+    wmove(statline, 0, 0);
+    wbkgd(statline, error_attr);
+    wprintw(statline, "[VNES Debugger] ");
+    vw_printw(statline, fmt, args);
+    wrefresh(statline);
+    
+    va_end(args);
+    getch();
+}
+
+
+/* Local function Definitions */
+
+/* Initializes Ncurses and sets attributes based on its capabilities. */
+static void Init_Ncurses(void) {
+    int x, y;
+    
+    /* Set ncurses attributes */
+    initscr();
+    noecho();
+    curs_set(0);
+    keypad(stdscr, TRUE);
+    getmaxyx(stdscr, y, x);
+
+    /* Try to see if we have color; if we don't, we use "reverse" */
+    if (has_colors()) {
+        start_color();
+        
+        init_pair(INFO_COLOR, COLOR_WHITE, COLOR_BLUE);
+        init_pair(ERROR_COLOR, COLOR_WHITE, COLOR_RED);
+        
+        info_attr = COLOR_PAIR(INFO_COLOR);
+        error_attr = COLOR_PAIR(ERROR_COLOR);
+    } else {
+        info_attr = error_attr = A_REVERSE;
+    }
+    
+    /* Initialize windows */
+    logwin = newwin(y, x, 0, 0);
+    statline = newwin(1, x, y - 1, 0);
+    
+    
+    scrollok(logwin, TRUE);
+    refresh();
+}
+
+static void Open_Log(void) {
+    /* Open log file for reading/writing */
+    logfp = fopen(logfilename, "rw");
+    
+    /* If we couldn't open the log file, we error */
+    if (!logfp) {
+        Show_Error("Error opening log: %s\n", strerror(errno));
+		End_Dbg(0);
+	}
+}
+
+/* Converts an instruction into its assembler equivalent. */
 static char *Stringify_Instruction(u8 *ops, u8 size) {
     sprintf(asmstrbuf__, "%s ", op_str[ops[0]]);
     switch (op_mode[ops[0]]) {
@@ -79,6 +189,7 @@ static char *Stringify_Instruction(u8 *ops, u8 size) {
     return asmstrbuf__;
 }
 
+/* Log an instruction */
 void Log_Instruction(void) {
     char line[88];
     u8 ops[3], len, i;
@@ -103,57 +214,10 @@ void Log_Instruction(void) {
     wprintw(logwin, "%s\n", line);
     wrefresh(logwin);
 
-    wbkgd(statline, A_REVERSE);
-    mvwprintw(statline, 0, 0, "VNES debugger");
-    fprintf(logfp, "%s\n", line);
+    wbkgd(statline, info_attr);
+    mvwprintw(statline, 0, 0, "[VNES debugger]");
     wrefresh(statline);
+
+    fprintf(logfp, "%s\n", line);
 }
 
-void Start_Dbg(void) {
-    int cmd = 0, x, y;
-    signal(SIGINT, End_Dbg);
-    
-    //Ini
-    initscr();
-    noecho();
-    curs_set(0);
-    keypad(stdscr, TRUE);
-    logfp = fopen(logfilename, "w+");
-    getmaxyx(stdscr, y, x);
-    
-    logwin = newwin(y, x, 0, 0);
-    statline = newwin(1, x, y - 1, 0);
-    
-    scrollok(logwin, TRUE);
-    refresh();
-
-    if (!logfp) {
-		wbkgd(statline, A_REVERSE);
-		wprintw(statline, "Error opening log: %s\n", strerror(errno));
-		wrefresh(statline);
-		getch();
-		End_Dbg(0);
-	}
-    
-    Log_Instruction();
-    
-    while (cmd != 'q') {
-        cmd = getch();
-        switch (cmd) {
-            case 's': 
-                Cpu_Step();
-                Log_Instruction();
-            break;
-            case 'c': {
-                u8 op;
-                while (op_fn[(op = Mem_Fetch(cpu.pc))] != op_fn[0xFF]) {
-                    Cpu_Step();
-                    Log_Instruction();
-                }
-            }
-            default:
-            break;
-        }
-    }
-    End_Dbg(0);
-}
