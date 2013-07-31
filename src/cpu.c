@@ -22,7 +22,7 @@
 #include "bitwise.h"
 
 #define CPU_STACK_INIT 0xFD
-#define CPU_STATUS_INIT 0x34
+#define CPU_STATUS_INIT 0x24
 #define CPU_PC_RESET 0xC000 
 // Mem_Fetch16(0xFFFC)
 

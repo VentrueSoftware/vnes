@@ -60,7 +60,7 @@ static char *Stringify_Instruction(u8 *ops, u8 size) {
         case ZP: sprintf(asmstrbuf__ + 4, "$%02X", ops[1]); break;
         case ZX: sprintf(asmstrbuf__ + 4, "$%02X + X", ops[1]); break;
         case ZY: sprintf(asmstrbuf__ + 4, "$%02X + Y", ops[1]); break;
-        case RE: sprintf(asmstrbuf__ + 4, "%+d", (i8)ops[1]); break;
+        case RE: sprintf(asmstrbuf__ + 4, "$%04X", 2 + cpu.pc + (i8)ops[1]); break;
         case AB: sprintf(asmstrbuf__ + 4, "$%02X%02X", ops[2], ops[1]); break;
         case AX: sprintf(asmstrbuf__ + 4, "$%02X%02X + X", ops[2], ops[1]); break;
         case AY: sprintf(asmstrbuf__ + 4, "$%02X%02X + Y", ops[2], ops[1]); break;
@@ -90,7 +90,7 @@ void Log_Instruction(void) {
     }
     sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:XXX",
         Stringify_Instruction(ops, len),
-        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, (cpu.cycles * 3) % 339);
+        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, (cpu.cycles * 3) % 341);
     
     wprintw(logwin, "%s\n", line);
     wrefresh(logwin);
