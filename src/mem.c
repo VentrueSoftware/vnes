@@ -41,7 +41,13 @@ INLINED u8 Mem_Fetch(u16 address) {
     /* Memory mapping should go here, as things are implemented. */
     if (address < 0x2000) return internal_mem[address % INTERNAL_MEM_SIZE];
     else if (address > 0x4020) return Read_Cartridge_Prg(address);
-    printf("Unassigned memory partition mapped.\n");
+    else switch (address) {
+        case PPUSTATUS: return Get_Ppu_Status();
+        case OAMDATA: return Read_Oam_Data();
+        case PPUDATA: return Read_Ppu_Data();
+        default:
+            printf("Unassigned memory partition mapped: 0x%04X\n", address);
+    }
     return 0x00;
 }
 
@@ -52,12 +58,23 @@ INLINED u16 Mem_Fetch16(u16 address) {
 
 INLINED void Mem_Set(u16 address, u8 value) {
     /* Memory Mapping and the whatnot */
-    internal_mem[address % INTERNAL_MEM_SIZE] = value;
+    if (address < 0x2000) internal_mem[address % INTERNAL_MEM_SIZE] = value;
+    else switch (address) {
+        case PPUCTRL: Write_Ppu_Ctrl(value); break;
+        case PPUMASK: Write_Ppu_Mask(value); break;
+        case OAMADDR: Write_Ppu_Oam_Addr(value); break;
+        case OAMDATA: Write_Ppu_Oam_Data(value); break;
+        case PPUSCROLL: Write_Ppu_Scroll(value); break;
+        case PPUADDR: Write_Ppu_Addr(value); break;
+        case PPUDATA: Write_Ppu_Data(value); break;
+        default:
+            printf("Unassigned memory partition mapped: 0x%04X\n", address);
+    }
 }
 
 INLINED void Mem_Set16(u16 address, u16 value) {
     Mem_Set(address, LB(value));
-    Mem_Set(address, UB(value));
+    Mem_Set(address + 1, UB(value));
 }
 
 INLINED u8 *Mem_Get_Ptr(u16 address) {
