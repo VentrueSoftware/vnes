@@ -17,6 +17,16 @@
 
 #include "types.h"
 
+/* CPU's Memory-mapped PPU Registers */
+#define PPUCTRL   0x2000
+#define PPUMASK   0x2001
+#define PPUSTATUS 0x2002
+#define OAMADDR   0x2003
+#define OAMDATA   0x2004
+#define PPUSCROLL 0x2005
+#define PPUADDR   0x2006
+#define PPUDATA   0x2007
+
 /* PPUCTRL Flags */
 #define NAMETABLE_BASE      0x03
 #define VRAM_INCREMENT      0x04
@@ -47,6 +57,8 @@ typedef struct ppu_2c02 {
 	i16 scanline;
 	u32 cycles;
 	
+    u8 last_write;  /* The value last written to PPU */
+    
     /* Registers */
     u8 ctrl;        /* PPUCTRL */
     u8 mask;        /* PPUMASK */
@@ -54,7 +66,10 @@ typedef struct ppu_2c02 {
     u8 oamaddr;     /* OAM Address */
     
     u8 latch;       /* Address Latch for PPUSCROLL/PPUADDR */
-    u16 scroll; 	/* Scroll Address (PPUSCROLL) */
+    
+    u16 scrollx; 	/* Scroll x */
+    u16 scrolly;    /* Scroll y */
+    
     u16 addr;       /* VRAM Address (PPUADDR) */
     u16 vram_addr;	/* VRAM Address (PPUADDR) */
     u16 temp_addr;	/* Temporary VRAM address */
@@ -64,7 +79,6 @@ typedef struct ppu_2c02 {
     /* Data storage */
     u8 nt[0x2000];
     u8 *nt_map[4];
-
     u8 palette[0x10];
     u8 oam[0x100];
 } ppu_2c02;
@@ -74,17 +88,9 @@ INLINED void Set_Nametable_Mirroring(u8 mode);
 INLINED void Ppu_Add_Cycles(u32 cycles);
 
 /* Reads coming from CPU */
-INLINED u8 Read_Ppu_Status(void);
-INLINED u8 Read_Oam_Data(void);
-INLINED u8 Read_Ppu_Data(void);
+u8 Read_Ppu(u16 addr);
 
 /* Writes coming from CPU */
-INLINED void Write_Ppu_Ctrl(u8 byte);
-INLINED void Write_Ppu_Mask(u8 byte);
-INLINED void Write_Ppu_Oam_Addr(u8 byte);
-INLINED void Write_Ppu_Oam_Data(u8 byte);
-INLINED void Write_Ppu_Scroll(u8 byte);
-INLINED void Write_Ppu_Addr(u8 byte);
-INLINED void Write_Ppu_Data(u8 byte);
+void Write_Ppu(u16 addr, u8 value);
 
 #endif /* #ifndef VNES_PPU_H */
