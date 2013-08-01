@@ -22,7 +22,8 @@ TARGET_SRC_FILES = cpu.c  	\
                    opcode.c	\
                    vnes.c	\
                    cart.c	\
-                   ines-cart.c \
+                   ines-cart.c  \
+                   ppu.c        \
                    dbg.c
 
 ifeq ($(MAKECMDGOALS), dbg-gui)
