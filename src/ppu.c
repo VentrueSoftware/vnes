@@ -14,6 +14,8 @@
  */
 
 #include "ppu.h"
+#include "bitwise.h"
+#include "cart.h"
 
 #define MIRROR_HORIZONTAL   0
 #define MIRROR_VERTICAL     1
@@ -21,7 +23,7 @@
 
 /* Local function declarations */
 static u8 Read_Vram(u16 addr);
-static void Write_Vram(u8 byte);
+static void Write_Vram(u16 addr, u8 byte);
 
 ppu_2c02 ppu;
 
@@ -34,6 +36,7 @@ INLINED void Ppu_Init(void) {
     ppu.oamaddr = 0;
     ppu.latch = 0;
     ppu.addr = 0;
+    ppu.scanline = 241;
 }
 
 INLINED void Set_Nametable_Mirroring(u8 mode) {
@@ -55,6 +58,16 @@ INLINED void Set_Nametable_Mirroring(u8 mode) {
     }
 }
 
+INLINED void Ppu_Add_Cycles(u32 cycles) {
+	ppu.cycles += cycles;
+	/* Check for rendering code */
+	if (ppu.cycles > 340) {
+		ppu.cycles -= 340;
+		ppu.scanline = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
+		//Render_Scanline();
+	}
+}
+
 /* READS */
 
 /* Get PPUSTATUS/  This also clears the VBLANK_STARTED flag and
@@ -74,9 +87,8 @@ INLINED u8 Read_Oam_Data(void) {
 
 /* Read PPUDATA */
 INLINED u8 Read_Ppu_Data(void) {
-    /* Not implemented yet */
     register u8 value = 0;
-    //Read_Vram(ppu.addr);
+    value = Read_Vram(ppu.addr);
     ppu.addr += (ppu.status & VRAM_INCREMENT) ? 32 : 1;
     return value;
 }
@@ -129,8 +141,7 @@ INLINED void Write_Ppu_Addr(u8 byte) {
 
 /* Set PPUDATA */
 INLINED void Write_Ppu_Data(u8 byte) {
-    /* Not implemented yet */
-    //Write_Vram(byte);
+    Write_Vram(ppu.addr, byte);
     ppu.addr += (ppu.ctrl & VRAM_INCREMENT) ? 32 : 1;
 }
 
@@ -153,6 +164,7 @@ static u8 Read_Vram(u16 addr) {
         /* Palette data */
         return ppu.palette[addr % 0x10];
     }
+    return 0xFF;
 }
 
 static void Write_Vram(u16 addr, u8 value) {

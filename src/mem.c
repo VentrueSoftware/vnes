@@ -14,6 +14,7 @@
  */
 
 #include "mem.h"
+#include "ppu.h"
 #include "bitwise.h"
 #include "cart.h"
 #include <string.h>
@@ -42,7 +43,7 @@ INLINED u8 Mem_Fetch(u16 address) {
     if (address < 0x2000) return internal_mem[address % INTERNAL_MEM_SIZE];
     else if (address > 0x4020) return Read_Cartridge_Prg(address);
     else switch (address) {
-        case PPUSTATUS: return Get_Ppu_Status();
+        case PPUSTATUS: return Read_Ppu_Status();
         case OAMDATA: return Read_Oam_Data();
         case PPUDATA: return Read_Ppu_Data();
         default:

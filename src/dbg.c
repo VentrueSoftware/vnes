@@ -25,6 +25,7 @@
 #include "dbg.h"
 #include "types.h"
 #include "cpu.h"
+#include "ppu.h"
 #include "mem.h"
 #include "opcode.h"
 
@@ -40,6 +41,8 @@ extern const op_func op_fn[];
 /* Useful globals from cpu.c */
 extern cpu_6502 cpu;
 
+/* Useful globals from ppu.c */
+extern ppu_2c02 ppu;
 
 /* Static buffer for stringifying an instruction */
 #define MAX_ASM_LEN 16
@@ -159,7 +162,7 @@ static void Init_Ncurses(void) {
 
 static void Open_Log(void) {
     /* Open log file for reading/writing */
-    logfp = fopen(logfilename, "rw");
+    logfp = fopen(logfilename, "w+");
     
     /* If we couldn't open the log file, we error */
     if (!logfp) {
@@ -207,9 +210,9 @@ void Log_Instruction(void) {
     for (; i < 3; i++) {
         sprintf(line + 5 + (3 * i), "   ");
     }
-    sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:XXX",
+    sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:%3d",
         Stringify_Instruction(ops, len),
-        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, (cpu.cycles * 3) % 341);
+        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, ppu.cycles, ppu.scanline);
     
     wprintw(logwin, "%s\n", line);
     wrefresh(logwin);

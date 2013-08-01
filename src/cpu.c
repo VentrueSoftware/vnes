@@ -28,6 +28,9 @@
 /* Instance of the cpu */
 cpu_6502 cpu;
 
+/* External method for increasing PPU cycles */
+extern void Ppu_Add_Cycles(u32 cycles);
+
 /* Func: void cpu_init(void)
  * Desc: sets the cpu into it's initial state. Note that this is not the
  * same as pressing the reset button. */
@@ -57,6 +60,7 @@ INLINED u8 Cpu_Fetch(void) {
 
 INLINED void Cpu_Add_Cycles(u32 cycles) {
     cpu.cycles += cycles;
+    Ppu_Add_Cycles(3 * cycles);
 }
 
 INLINED VNES_Err Cpu_Step(void) {

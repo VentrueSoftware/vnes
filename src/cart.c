@@ -46,3 +46,10 @@ u8 Read_Cartridge_Prg(u16 address) {
     }
     return 0xFF;
 }
+
+u8 Read_Cartridge_Chr(u16 address) {
+	if (g_cart) {
+		return g_cart->Read_Chr(g_cart, address);
+	}
+	return 0xFF;
+}

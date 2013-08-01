@@ -43,6 +43,10 @@
 #define VBLANK_STARTED  0x80
 
 typedef struct ppu_2c02 {
+	/* PPU Emulation Info */
+	i16 scanline;
+	u32 cycles;
+	
     /* Registers */
     u8 ctrl;        /* PPUCTRL */
     u8 mask;        /* PPUMASK */
@@ -50,8 +54,10 @@ typedef struct ppu_2c02 {
     u8 oamaddr;     /* OAM Address */
     
     u8 latch;       /* Address Latch for PPUSCROLL/PPUADDR */
-    u16 scrolladdr; /* Scroll Address (PPUSCROLL) */
+    u16 scroll; 	/* Scroll Address (PPUSCROLL) */
     u16 addr;       /* VRAM Address (PPUADDR) */
+    u16 vram_addr;	/* VRAM Address (PPUADDR) */
+    u16 temp_addr;	/* Temporary VRAM address */
     
     u8 vram_value;  /* VRAM value last fetched. */
     
@@ -65,6 +71,7 @@ typedef struct ppu_2c02 {
 
 INLINED void Ppu_Init(void);
 INLINED void Set_Nametable_Mirroring(u8 mode);
+INLINED void Ppu_Add_Cycles(u32 cycles);
 
 /* Reads coming from CPU */
 INLINED u8 Read_Ppu_Status(void);
