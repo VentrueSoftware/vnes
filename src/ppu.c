@@ -41,6 +41,8 @@ static INLINED void Write_Ppu_Data(u8 byte);
 static u8 Read_Vram(u16 addr);
 static void Write_Vram(u16 addr, u8 byte);
 
+        extern void Log_Line(const char *format, ...);
+
 ppu_2c02 ppu;
 
 /* Initialize PPU */
@@ -69,7 +71,7 @@ INLINED void Set_Nametable_Mirroring(u8 mode) {
             ppu.nt_map[0] = ppu.nt_map[2] = ppu.nt;
             ppu.nt_map[1] = ppu.nt_map[3] = ppu.nt + 0x400;
             break;
-        case MIRROR_FOUR_SCREEN:
+        case MIRROR_FOUR_SCREEN: default:
             ppu.nt_map[0] = ppu.nt;
             ppu.nt_map[1] = ppu.nt + 0x400;
             ppu.nt_map[2] = ppu.nt + 0x800;
@@ -82,7 +84,6 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
     ppu.cycles += cycles;
     /* Check for rendering code */
     if (ppu.cycles > 340) {
-        extern void Log_Line(const char *format, ...);
         ppu.cycles -= 340;
         
         /* Advance scanline */
@@ -115,6 +116,7 @@ u8 Read_Ppu(u16 addr) {
 
 void Write_Ppu(u16 addr, u8 value) {
     ppu.last_write = value;
+    //Log_Line("Writing to PPU address %04x, value %02x", addr, value);
     switch (addr) {
         case PPUCTRL: Write_Ppu_Ctrl(value); break;
         case PPUMASK: Write_Ppu_Mask(value); break;
@@ -204,6 +206,7 @@ static INLINED void Write_Ppu_Addr(u8 value) {
 /* Set PPUDATA */
 INLINED void Write_Ppu_Data(u8 value) {
     Write_Vram(ppu.addr, value);
+    //Log_Line("Wrote value %02X to %04X", value, ppu.addr);
     ppu.addr += (ppu.ctrl & VRAM_INCREMENT) ? 32 : 1;
 }
 

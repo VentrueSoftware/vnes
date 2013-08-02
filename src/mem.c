@@ -57,7 +57,7 @@ INLINED u16 Mem_Fetch16(u16 address) {
 INLINED void Mem_Set(u16 address, u8 value) {
     /* Memory Mapping and the whatnot */
     if (address < 0x2000) internal_mem[address % INTERNAL_MEM_SIZE] = value;
-    else if (address < 0x2008) switch (address) {
+    else if (address < 0x2008) {
         Write_Ppu(address, value);
     } else {
         printf("Unassigned memory partition mapped: 0x%04X\n", address);

@@ -59,7 +59,7 @@ void Render_Scanline(i16 scanline) {
     /* Enforce cleared memory */
     bzero(render_buffer, 256 * 4);
     
-    if (ppu.mask & SHOW_BG) Render_Background(background);
+    Render_Background(background);
     //if (ppu.mask & SHOW_SPRITES) Render_Sprites(scanline, spr_front, spr_back);
     
     /* Compositor renders directly into the screen buffer. */
@@ -231,11 +231,18 @@ static void Composite_Scanline(i16 scanline, u16 *background, u16 *spr_back, u16
 void Dump_Render(char *file) {
     int x, y;
     FILE *fp = fopen(file, "w");
+#if 0
+    for (y = 0; y < 0x2000; y++) {
+        fprintf(fp, "%02X ", ppu.nt[y]);
+        if (y && !(y % 0x10)) fprintf(fp, "\n");
+    }
+#else
     for (y = 0; y < NES_RES_Y; y++) {
         for (x = 0; x < NES_RES_X; x++) {
-            fprintf(fp, "%c ", render_data[(y * NES_RES_Y) + x]);
+            fprintf(fp, "%c", render_data[(y * NES_RES_Y) + x]);
         }
         fprintf(fp, "\n");
     }
+#endif
     fclose(fp);
 }
