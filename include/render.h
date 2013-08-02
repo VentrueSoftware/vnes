@@ -26,5 +26,6 @@ INLINED u32 Sample_Nes_Palette(u8 index);
 void Render_Scanline(i16 scanline);
 void Dump_Render(char *file);
 void Dump_Pattern_Tables(void);
+void Dump_Name_Tables(void);
 
 #endif /* #ifndef VNES_RENDER_H */

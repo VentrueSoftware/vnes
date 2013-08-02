@@ -90,9 +90,7 @@ static void Render_Background(u16 *background) {
     clip_amount = IS_SET(ppu.mask, CLIP_BG) ? 0 : 8;
     
     
-    for (i = 0; i < 264; i++) {
-        u16 calcx = ((ppu.addr << 3) & 0xFF) | ppu.scrollx,
-            calcy = ((ppu.addr >> 2) & 0xF8) | ppu.scrolly;
+    for (i = 0; i < 256; i++) {
         /* Check to see if the pixel should be rendered. This means
          * that it is within clip_amount and 256, and that it has a lower
          * two bits that are non-zero. The first of those conditions can
@@ -181,13 +179,13 @@ static void Render_Background(u16 *background) {
          
         /* The two low bits are calculated from the pattern table itself. This
          * is where the precision from scrollx and scrolly help. */
-        current_pixel = ((Read_Cartridge_Chr(pattern_offset) >> ppu.scrollx) & 1)
-                       | (((Read_Cartridge_Chr(pattern_offset + 8) >> ppu.scrollx) & 1) << 1)
+        current_pixel = ((Read_Cartridge_Chr(pattern_offset) >> (7 - ppu.scrollx)) & 1)
+                       | (((Read_Cartridge_Chr(pattern_offset + 8) >> (7 - ppu.scrollx)) & 1) << 1)
                        | (current_attr << 2);
         
         /* Check that the lower two bits are set.  If they are, we can
          * render this pixel to the background line. */
-        if (current_pixel & 0x03) {
+        if (current_pixel & 0x0F) {
             background[i] = current_pixel | 0x3F00;
         }
 update:
@@ -246,8 +244,8 @@ void Dump_Render(char *file) {
 }
 
 /* Dumps the pattern table in a 16x16 grid of 8x8 patterns. */
+u32 pt_palette[4] = {0, 0x55555555, 0xCCCCCCCC, 0xFFFFFFFF};
 void Dump_Pattern_Tables(void) {
-    const u32 pt_palette[4] = { 0x00000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF };
     u16 base = 0, i, j;
     /* Iterate through all of the pattern table data */
     i16 x, y;
@@ -261,11 +259,28 @@ void Dump_Pattern_Tables(void) {
                     
                     /* Composite the pattern data, bit by bit */
                     for (x = 7; x > -1; x--) {
-                        u8 index = ((t1 >> x) & 1) | (((t2 >> x) & 1) << 1);
+                        u8 index = (t1 >> (x) & 1) | (((t2 >> x) & 1) << 1);
                         fwrite(pt_palette + index, sizeof(u32), 1, stdout);
                     }
                 }
             }
         }
     }
+}
+
+/* Dumps the name table into a file */
+void Dump_Name_Tables(void) {
+    u8 index; u16 x, y;
+    FILE *fp = fopen("nt.map", "w");
+    for (index = 0; index < 4; index++) {
+        fprintf(fp, "[Name table %u]\n", index);
+        for (y = 0; y < 240; y++) {
+            for (x = 0; x < 256; x++) {
+                fprintf(fp, "%03u ", ppu.nt_map[index][((y / 8) * 32) + (x / 8)]);
+            }
+            fprintf(fp, "\n");
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
 }

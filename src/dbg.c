@@ -81,13 +81,13 @@ void Start_Dbg(void) {
         switch (cmd) {
             case 's': 
                 Cpu_Step();
-                Log_Instruction();
+                //Log_Instruction();
             break;
             case 'r': {
                 u8 op;
                 while (op_fn[(op = Mem_Fetch(cpu.pc))] != op_fn[0xFF]) {
                     Cpu_Step();
-                    Log_Instruction();
+                    //Log_Instruction();
                 }
             }
             default:
@@ -193,6 +193,7 @@ static char *Stringify_Instruction(u8 *ops, u8 size) {
 }
 
 void Log_Line(const char *format, ...) {
+//#if 0    
     va_list args;
     va_start(args, format);
     
@@ -203,10 +204,12 @@ void Log_Line(const char *format, ...) {
     wrefresh(logwin);
     getch();
     va_end(args);
+//#endif
 }
 
 /* Log an instruction */
 void Log_Instruction(void) {
+#if 0
     char line[100];
     u8 ops[3], len, i;
 
@@ -235,5 +238,6 @@ void Log_Instruction(void) {
     //wrefresh(statline);
 
     fprintf(logfp, "%s\n", line);
+#endif
 }
 

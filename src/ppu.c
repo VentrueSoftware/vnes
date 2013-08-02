@@ -100,6 +100,8 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
                 Cpu_Nmi();
             }
             Dump_Render("screen.data");
+            Log_Line("Frame written.");
+            Dump_Name_Tables();
         }
     }
 }
