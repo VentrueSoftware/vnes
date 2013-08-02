@@ -38,8 +38,8 @@
 
 /* PPUMASK Flags */
 #define MASK_GRAYSCALE      0x01
-#define SHOW_BG_LEFT8       0x02
-#define SHOW_SPRITES_LEFT8  0x04
+#define CLIP_BG             0x02
+#define CLIP_SPRITES        0x04
 #define SHOW_BG             0x08
 #define SHOW_SPRITES        0x10
 #define INTENSIFY_REDS      0x20

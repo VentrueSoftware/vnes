@@ -13,7 +13,13 @@
  *          File created.
  */
 
+#include <string.h>
+#include "bitwise.h"
 #include "render.h"
+#include "ppu.h"
+
+/* From ppu.h */
+extern ppu_2c02 ppu;
 
 static const u32 nes_palette[] = {
 	0x7C7C7C, 0x0000FC, 0x0000BC, 0x4428BC, 0x940084, 0xA80020, 0xA81000,
@@ -31,5 +37,43 @@ static const u32 nes_palette[] = {
 static u32 render_data[NES_RES_X * NES_RES_Y];
 
 INLINED u32 Sample_Nes_Palette(u8 index) {
-    return nes_palette__[index];
+    return nes_palette[index];
+}
+
+/* Local declarations */
+static void Render_Background(u16 scanline, u16 *background);
+
+/* Rendering Function Definitions */
+
+/* Render_Scanline renders background, sprites (front, back, and zero)
+ * and then passes them to a compositor.   */
+void Render_Scanline(u16 scanline) {
+    u16 render_buffer[256 * 4];
+    u16 *background = render_buffer,
+        *spr_front = render_buffer + 256,
+        *spr_back  = render_buffer + (2 * 256),
+        *spr_zero  = render_buffer + (3 * 256);
+        
+    /* Enforce cleared memory */
+    bzero(render_buffer, 256 * 4);
+    
+    if (ppu.mask & SHOW_BG) Render_Background(scanline, background);
+    //if (ppu.mask & SHOW_SPRITES) Render_Sprites(scanline, spr_front, spr_back, spr_zero);
+    
+    /* Compositor renders directly into the screen buffer. */
+    /* Composite_Scanline(scanline, background, spr_front, spr_back, spr_zero); */
+}
+
+/* Render_Background renders the background at the particular scanline */
+static void Render_Background(u16 scanline, u16 *background) {
+    u16 clip;           /* Clip offset */
+    u16 i;              /* Iterator variable */
+    u8 nt_index,        /* Name table index */
+       current_pixel,   /* Current Pixel value */
+       current_attr;    /* Attribute table value */
+    
+    clip = IS_SET(ppu.mask, CLIP_BG) ? 8 : 0;
+    for (i = 0; i < 264; i++) {
+        nt_index = (ppu.addr >> 10) & 0x03;
+    }
 }

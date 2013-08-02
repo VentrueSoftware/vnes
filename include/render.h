@@ -23,4 +23,6 @@
 
 INLINED u32 Sample_Nes_Palette(u8 index);
 
+void Render_Scanline(u16 scanline);
+
 #endif /* #ifndef VNES_RENDER_H */

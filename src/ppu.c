@@ -16,6 +16,7 @@
 #include "ppu.h"
 #include "bitwise.h"
 #include "cart.h"
+#include "render.h"
 
 #define MIRROR_HORIZONTAL   0
 #define MIRROR_VERTICAL     1
@@ -38,9 +39,6 @@ static INLINED void Write_Ppu_Data(u8 byte);
 /* VRAM Operations */
 static u8 Read_Vram(u16 addr);
 static void Write_Vram(u16 addr, u8 byte);
-
-/* Render functions */
-static void Render_Scanline(void);
 
 ppu_2c02 ppu;
 
@@ -79,7 +77,10 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
 	/* Check for rendering code */
 	if (ppu.cycles > 340) {
 		ppu.cycles -= 340;
-		Render_Scanline();
+        
+        /* Advance scanline */
+        ppu.scanline = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
+		Render_Scanline(ppu.scanline);
 	}
 }
 
@@ -138,50 +139,50 @@ static INLINED u8 Read_Ppu_Data(void) {
 
 /* WRITES */
 /* Set the PPUCTRL flags. */
-static INLINED void Write_Ppu_Ctrl(u8 byte) {
-    ppu.ctrl = byte;
+static INLINED void Write_Ppu_Ctrl(u8 value) {
+    ppu.ctrl = value;
 }
 
 /* Set the PPUMASK flags. */
-static INLINED void Write_Ppu_Mask(u8 byte) {
-    ppu.mask = byte;
+static INLINED void Write_Ppu_Mask(u8 value) {
+    ppu.mask = value;
 }
 
 /* Set the OAMADDR */
-static INLINED void Write_Ppu_Oam_Addr(u8 byte) {
-    ppu.oamaddr = byte;
+static INLINED void Write_Ppu_Oam_Addr(u8 value) {
+    ppu.oamaddr = value;
 }
 
 /* Set the OAMDATA */
-static INLINED void Write_Ppu_Oam_Data(u8 byte) {
-    ppu.oam[ppu.oamaddr++] = byte;
+static INLINED void Write_Ppu_Oam_Data(u8 value) {
+    ppu.oam[ppu.oamaddr++] = value;
 }
 
 /* Set PPUSCROLL */
-static INLINED void Write_Ppu_Scroll(u8 byte) {
+static INLINED void Write_Ppu_Scroll(u8 value) {
     if (0 == ppu.latch) {
         ppu.latch = 1;
-        ppu.scrollx = byte;
+        ppu.scrollx = value;
     } else {
         ppu.latch = 0;
-        ppu.scrolly = byte;
+        ppu.scrolly = value;
     }
 }
 
 /* Set PPUADDR */
-static INLINED void Write_Ppu_Addr(u8 byte) {
+static INLINED void Write_Ppu_Addr(u8 value) {
     if (0 == ppu.latch) {
         ppu.latch = 1;
-        ppu.addr = ((u16)(byte)) << 8;
+        ppu.addr = ((u16)(value)) << 8;
     } else {
         ppu.latch = 0;
-        ppu.addr |= byte;
+        ppu.addr |= value;
     }
 }
 
 /* Set PPUDATA */
-INLINED void Write_Ppu_Data(u8 byte) {
-    Write_Vram(ppu.addr, byte);
+INLINED void Write_Ppu_Data(u8 value) {
+    Write_Vram(ppu.addr, value);
     ppu.addr += (ppu.ctrl & VRAM_INCREMENT) ? 32 : 1;
 }
 
@@ -192,15 +193,15 @@ static u8 Read_Vram(u16 addr) {
     if (addr < 0x2000) return Read_Cartridge_Chr(addr);
     else if (addr < 0x3F00) {
         /* Resolve address using nametable mirror map and offset. */
-        register u8 index = (addr % 0x1000) / 0x400;
-        register u16 offset = addr % 0x400;
+        register u8 index = (addr >> 10) & 0x03;
+        register u16 offset = addr & 0x3FF;
         /* We technically lag by one fetch. */
         value = ppu.vram_value;
         ppu.vram_value = ppu.nt_map[index][offset];
         return value;
     } else if (addr < 0x3F20) {
         /* Palette data */
-        return ppu.palette[addr % 0x10];
+        return ppu.palette[addr & 0x0F];
     }
     return 0xFF;
 }
@@ -210,18 +211,11 @@ static void Write_Vram(u16 addr, u8 value) {
     if (addr < 0x2000) {/* Write_Cartridge_Chr(addr, value) */}
     else if (addr < 0x3F00) {
         /* Resolve address using nametable mirror map and offset. */
-        register u8 index = (addr % 0x1000) / 0x400;
-        register u16 offset = addr % 0x400;
+        register u8 index = (addr >> 10) & 0x03;
+        register u16 offset = addr & 0x3FF;
         ppu.nt_map[index][offset] = value;
     } else if (addr < 0x3F20) {
         /* Palette data */
-        ppu.palette[addr % 0x10] = value;
+        ppu.palette[addr & 0x0F] = value;
     }    
-}
-
-/* Rendering Function Definitions */
-static void Render_Scanline(void) {
-    
-	/* Advance scanline */
-    ppu.scanline = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
 }

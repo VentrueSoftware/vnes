@@ -27,6 +27,9 @@
 #define FLAG_COND(cond, var, flags) \
     (cond) ? FLAG_SET(var, flags) : FLAG_CLEAR(var, flags)
 
+#define IS_SET(var, flag) \
+    ((var) & (flag))
+
 #define PAGE_OF(x) \
 	((x) & 0xFF00)
 
