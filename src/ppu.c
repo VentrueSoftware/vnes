@@ -97,7 +97,7 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
                 ppu.palette[12], ppu.palette[13], ppu.palette[14], ppu.palette[15]);
             FLAG_SET(ppu.status, VBLANK_STARTED);
             if (IS_SET(ppu.ctrl, NMI_ON_VBLANK)) Cpu_Nmi();
-            Dump_Render("screen.dump");
+            Dump_Render("screen.data");
         }
     }
 }
@@ -238,8 +238,9 @@ static void Write_Vram(u16 addr, u8 value) {
         register u8 index = (addr >> 10) & 0x03;
         register u16 offset = addr & 0x3FF;
         ppu.nt_map[index][offset] = value;
-    } else if (addr < 0x3F20) {
+    } else if (addr < 0x3FF0) {
         /* Palette data */
+        //Log_Line("Adding palette data. %04x = %02x", addr, value);
         ppu.palette[addr & 0x0F] = value;
     }    
 }

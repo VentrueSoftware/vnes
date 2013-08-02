@@ -44,7 +44,7 @@ INLINED u8 Mem_Fetch(u16 address) {
     else if (address > 0x4020) return Read_Cartridge_Prg(address);
     else if (address < 0x2008) return Read_Ppu(address);
     else {
-        printf("Unassigned memory partition mapped: 0x%04X\n", address);
+        //printf("Unassigned memory partition mapped: 0x%04X\n", address);
     }
     return 0x00;
 }
@@ -60,7 +60,7 @@ INLINED void Mem_Set(u16 address, u8 value) {
     else if (address < 0x2008) {
         Write_Ppu(address, value);
     } else {
-        printf("Unassigned memory partition mapped: 0x%04X\n", address);
+        //printf("Unassigned memory partition mapped: 0x%04X\n", address);
     }
 }
 

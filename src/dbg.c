@@ -225,13 +225,13 @@ void Log_Instruction(void) {
         Stringify_Instruction(ops, len),
         cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, ppu.cycles, ppu.scanline);
     
-    wprintw(logwin, "%s\n", line);
-    wrefresh(logwin);
+    //wprintw(logwin, "%s\n", line);
+    //wrefresh(logwin);
 
     wbkgd(statline, info_attr);
-    mvwprintw(statline, 0, 0, "[VNES debugger]");
-    wrefresh(statline);
+    //mvwprintw(statline, 0, 0, "[VNES debugger]");
+    //wrefresh(statline);
 
-    fprintf(logfp, "%s\n", line);
+    //fprintf(logfp, "%s\n", line);
 }
 
