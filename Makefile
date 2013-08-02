@@ -4,7 +4,7 @@
 ###############################################
 
 #============ Project Definitions ============#
-
+PRINT = printf
 TOP_DIR  = $(shell pwd)
 
 TARGETS = vnes    \
@@ -78,30 +78,30 @@ $(TARGETS): bin
 
 # Build the binary
 bin: bin-intro target
-	@echo -e "\t* Creating binary $(TARGET_NAME)"
+	@$(PRINT) "\t* Creating binary $(TARGET_NAME)\n"
 	@mkdir -p $(TARGET_DIST_DIR)
 	$(V)$(CC) $(CFLAGS) $(INCLUDES) $(TARGET_OBJ) $(LIBS) $(DEFS) -o $(TARGET_DIST_DIR)/$(TARGET_NAME)
 	
 # Build target module
 target: target-intro $(TARGET_OBJ)
-	@echo -e "\t* Creating target module $(TARGET_NAME).o"
+	@$(PRINT) "\t* Creating target module $(TARGET_NAME).o\n"
 
 
 # Printouts #
 target-intro:
-	@echo -e "\t* Compiling target object code."
+	@$(PRINT) "\t* Compiling target object code.\n"
 	@mkdir -p $(TARGET_OBJ_DIR)
 	
 bin-intro:
-	@echo -e "============[ Building $(TARGET_NAME) ]============="
+	@$(PRINT) "============[ Building $(TARGET_NAME) ]=============\n"
 
 
 -include $(TARGET_OBJ:.o=.d)
 
 $(TARGET_OBJ_DIR)/%.o: $(TARGET_SRC_DIR)/%.c
-	@echo -e "\t\t* Generating $*.d"
+	@$(PRINT) "\t\t* Generating $*.d\n"
 	$(V)$(CC) -MM $(CFLAGS) $(INCLUDES) $(DEFS) $(TARGET_SRC_DIR)/$*.c > $(TARGET_OBJ_DIR)/$*.d
-	@echo -e "\t\t* Compiling $*.o"
+	@$(PRINT) "\t\t* Compiling $*.o\n"
 	$(V)$(CC) -c $(CFLAGS) $(INCLUDES) $(DEFS) $(TARGET_SRC_DIR)/$*.c -o $(TARGET_OBJ_DIR)/$*.o
 	
     #(Sort of) BLACK MAGIC -- Reformat dependency files for make purposes.
