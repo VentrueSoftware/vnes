@@ -87,10 +87,12 @@ static void Render_Background(u16 *background) {
 
     /* If CLIP_BG is set in PPUMASK, the left-most 8 pixels are not
      * rendered. */
-    clip_amount = IS_SET(ppu.mask, CLIP_BG) ? 8 : 0;
+    clip_amount = IS_SET(ppu.mask, CLIP_BG) ? 0 : 8;
     
     
     for (i = 0; i < 264; i++) {
+        u16 calcx = ((ppu.addr << 3) & 0xFF) | ppu.scrollx,
+            calcy = ((ppu.addr >> 2) & 0xF8) | ppu.scrolly;
         /* Check to see if the pixel should be rendered. This means
          * that it is within clip_amount and 256, and that it has a lower
          * two bits that are non-zero. The first of those conditions can
@@ -121,6 +123,7 @@ static void Render_Background(u16 *background) {
          * can use the least significant 10 bits to get the offset of the
          * tile we are rendering. */
         tile_no = ppu.nt_map[nt_index][ppu.addr & 0x03FF];
+        //tile_no = ppu.nt_map[nt_index][((calcy & 248) << 2) + (calcx >> 3)];
         
         /* Calculate the pattern's offset.
          * Since pattern entries are 16 bytes in size, we shift the 
@@ -185,7 +188,7 @@ static void Render_Background(u16 *background) {
         /* Check that the lower two bits are set.  If they are, we can
          * render this pixel to the background line. */
         if (current_pixel & 0x03) {
-            background[i] = current_pixel; //| 0x3F00;
+            background[i] = current_pixel | 0x3F00;
         }
 update:
         /* Update the x scroll position and the PPU address.  Every 8
@@ -199,7 +202,7 @@ update:
              * of 0x0400.  We then reconstruct the new address, using
              * the upper 10 bits and the lower 5, incremented. */
             if ((ppu.addr & 0x001F) == 0x001F) ppu.addr ^= 0x0400;
-            ppu.addr = (ppu.addr & 0x7FE0) + ((ppu.addr + 1) & 0x001F);
+            ppu.addr = (ppu.addr & 0x7FE0) | ((ppu.addr + 1) & 0x001F);
         }
         ppu.scrollx = (ppu.scrollx + 1) & 7;    /* & 7 <=> % 8 */
     }
@@ -213,7 +216,7 @@ update:
          * increment/mask change reflecting the y component instead of the
          * x component */
         if ((ppu.addr & 0x03E0) == 0x03E0) ppu.addr ^= 0x0800;
-        ppu.addr = (ppu.addr & 0xFC1F) + ((ppu.addr + 0x0020) & 0x03E0);
+        ppu.addr = (ppu.addr & 0xFC1F) | ((ppu.addr + 0x0020) & 0x03E0);
     }
     ppu.scrolly = (ppu.scrolly + 1) & 7;    /* & 7 <=> % 8 */
 }
@@ -237,12 +240,32 @@ void Dump_Render(char *file) {
         if (y && !(y % 0x10)) fprintf(fp, "\n");
     }
 #else
-    for (y = 0; y < NES_RES_Y; y++) {
-        for (x = 0; x < NES_RES_X; x++) {
-            fprintf(fp, "%u", render_data[(y * NES_RES_Y) + x]);
-        }
-        //fprintf(fp, "\n");
-    }
+    fwrite(render_data, sizeof(u32), NES_RES_X * NES_RES_Y, fp);
 #endif
     fclose(fp);
+}
+
+/* Dumps the pattern table in a 16x16 grid of 8x8 patterns. */
+void Dump_Pattern_Tables(void) {
+    const u32 pt_palette[4] = { 0x00000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF };
+    u16 base = 0, i, j;
+    /* Iterate through all of the pattern table data */
+    i16 x, y;
+    for (base = 0; base < 2; base++) {
+        for (i = 0; i < 16; i++) {
+            for (y = 0; y < 8; y++) {
+                for (j = 0; j < 16; j++) {
+                    /* Get the pattern data for this particular line. */
+                    u8 t1 = Read_Cartridge_Chr((base * 0x1000) + (i * 0x100) + (j * 0x10) + y);
+                    u8 t2 = Read_Cartridge_Chr((base * 0x1000) + (i * 0x100) + (j * 0x10) + 8 + y);
+                    
+                    /* Composite the pattern data, bit by bit */
+                    for (x = 7; x > -1; x--) {
+                        u8 index = ((t1 >> x) & 1) | (((t2 >> x) & 1) << 1);
+                        fwrite(pt_palette + index, sizeof(u32), 1, stdout);
+                    }
+                }
+            }
+        }
+    }
 }

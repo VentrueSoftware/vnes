@@ -20,6 +20,7 @@
 #include "mem.h"
 #include "dbg.h"
 #include "cart.h"
+#include "render.h"
 
 void VNES_Init(void) {
     neslog("Starting emulation...");
@@ -39,6 +40,10 @@ int main(int argc, char **argv) {
             ppu.scanline = 241;
 		} else {
 			Load_Cartridge(argv[1]);
+            if ((argc > 2) && 0 == strcmp(argv[2], "--ptdump")) {
+                Dump_Pattern_Tables();
+                return 0;
+            }
 			VNES_Init();
 		}
     }

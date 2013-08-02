@@ -198,6 +198,8 @@ void Log_Line(const char *format, ...) {
     
     vw_printw(logwin, format, args);
     wprintw(logwin, "\n");
+    vfprintf(logfp, format, args);
+    fprintf(logfp, "\n");
     wrefresh(logwin);
     getch();
     va_end(args);
@@ -232,6 +234,6 @@ void Log_Instruction(void) {
     //mvwprintw(statline, 0, 0, "[VNES debugger]");
     //wrefresh(statline);
 
-    //fprintf(logfp, "%s\n", line);
+    fprintf(logfp, "%s\n", line);
 }
 

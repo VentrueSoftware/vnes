@@ -104,7 +104,7 @@ extern cpu_6502 cpu;
 #define CLR(flags) FLAG_CLEAR(P, flags)
 #define FLG(cond, flags) FLAG_COND(cond, P, flags)
 #define FLG_NZ(val)       \
-    FLG(!(val), FLG_ZERO);\
+    FLG(!((u8)val), FLG_ZERO);\
     FLG((val) & FLG_SIGN, FLG_SIGN)
 
 /* Get opcode instruction length */

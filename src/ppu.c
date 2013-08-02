@@ -54,7 +54,7 @@ INLINED void Ppu_Init(void) {
     ppu.oamaddr = 0;
     ppu.latch = 0;
     ppu.addr = 0;
-    ppu.scanline = -1;
+    ppu.scanline = 0;
     
     for (i = 0; i < 0x10; i++) {
         ppu.palette[i] = i;
@@ -89,14 +89,16 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
         /* Advance scanline */
         ppu.scanline = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
         Render_Scanline(ppu.scanline);
-        if (ppu.scanline == 240) {
-            Log_Line("Executing NMI!");
+        if (ppu.scanline == 241) {
             Log_Line("Palette: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                 ppu.palette[0], ppu.palette[1], ppu.palette[2], ppu.palette[3], ppu.palette[4], ppu.palette[5], 
                 ppu.palette[6], ppu.palette[7], ppu.palette[8], ppu.palette[9], ppu.palette[10], ppu.palette[11], 
                 ppu.palette[12], ppu.palette[13], ppu.palette[14], ppu.palette[15]);
             FLAG_SET(ppu.status, VBLANK_STARTED);
-            if (IS_SET(ppu.ctrl, NMI_ON_VBLANK)) Cpu_Nmi();
+            if (IS_SET(ppu.ctrl, NMI_ON_VBLANK)) {
+                Log_Line("Executing NMI!");
+                Cpu_Nmi();
+            }
             Dump_Render("screen.data");
         }
     }
@@ -159,6 +161,7 @@ static INLINED u8 Read_Ppu_Data(void) {
 /* WRITES */
 /* Set the PPUCTRL flags. */
 static INLINED void Write_Ppu_Ctrl(u8 value) {
+    Log_Line("Writing to PPUCTRL, value: %02X", value);
     ppu.ctrl = value;
 }
 
@@ -223,7 +226,7 @@ static u8 Read_Vram(u16 addr) {
         value = ppu.vram_value;
         ppu.vram_value = ppu.nt_map[index][offset];
         return value;
-    } else if (addr < 0x3F20) {
+    } else {
         /* Palette data */
         return ppu.palette[addr & 0x0F];
     }
@@ -238,7 +241,7 @@ static void Write_Vram(u16 addr, u8 value) {
         register u8 index = (addr >> 10) & 0x03;
         register u16 offset = addr & 0x3FF;
         ppu.nt_map[index][offset] = value;
-    } else if (addr < 0x3FF0) {
+    } else {
         /* Palette data */
         //Log_Line("Adding palette data. %04x = %02x", addr, value);
         ppu.palette[addr & 0x0F] = value;
