@@ -158,14 +158,18 @@ static INLINED void Write_Ppu_Oam_Data(u8 value) {
     ppu.oam[ppu.oamaddr++] = value;
 }
 
-/* Set PPUSCROLL */
+/* Set PPUSCROLL
+ * Important note: scrollx and scrolly are the demux'd equivalent of
+ * the PPUSCROLL register.  This register controls the offset within
+ * a tile.  Since tiles are 8x8, it only makes sense to limit values to
+ * 0-7, which is done with a logical AND with 0x07. */
 static INLINED void Write_Ppu_Scroll(u8 value) {
     if (0 == ppu.latch) {
         ppu.latch = 1;
-        ppu.scrollx = value;
+        ppu.scrollx = value & 0x07;
     } else {
         ppu.latch = 0;
-        ppu.scrolly = value;
+        ppu.scrolly = value & 0x07;
     }
 }
 
