@@ -32,9 +32,11 @@ int main(int argc, char **argv) {
     if (argc > 1) {
 		if (0 == strcmp(argv[1], "--test")) {
 			extern cpu_6502 cpu;
+            extern ppu_2c02 ppu;
 			Load_Cartridge("roms/nestest.nes");
 			VNES_Init();
 			cpu.pc = 0xC000;
+            ppu.scanline = 241;
 		} else {
 			Load_Cartridge(argv[1]);
 			VNES_Init();

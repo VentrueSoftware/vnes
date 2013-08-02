@@ -195,6 +195,14 @@ static u8 Opcode_Get_Value(u8 mode, u8 cross) {
 /* Unsupported opcodes */
 DEFINE_OP(UNS) {}
 
+INLINED void Do_Nmi(void) {
+    Push_Stack((u8)(PC & 0x00FF));
+    Push_Stack((u8)(PC >> 8));
+    Push_Stack(P);
+    SET(FLG_INT_DIS);
+    PC = Mem_Fetch16(0xFFFA);
+}
+
 /* Alphabetized for your convenience! */
 
 /* opcode: ADC

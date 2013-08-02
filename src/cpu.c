@@ -67,6 +67,10 @@ INLINED VNES_Err Cpu_Step(void) {
     return Dispatch_Opcode(Cpu_Fetch());
 }
 
+INLINED void Cpu_Nmi(void) {
+    Do_Nmi();
+}
+
 /* Func: VNES_Err Cpu_Run(void)
  * Desc: Runs the cpu, performing instructions, handling interrupts, and
  *       the like. */

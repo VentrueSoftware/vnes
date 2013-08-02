@@ -61,6 +61,10 @@ INCLUDES = $(addprefix -I, $(TARGET_INC_DIR))
 LIBS     = -lncurses
 DEFS     = -DUSE_INLINING
 
+ifeq ($(DEBUG), true)
+	CFLAGS += -g
+endif
+
 #============ Linker Definitions ===========#
 LD       = ld
 LDFLAGS  = -r

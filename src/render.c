@@ -17,21 +17,22 @@
 #include "bitwise.h"
 #include "render.h"
 #include "ppu.h"
+#include "cart.h"
 
 /* From ppu.h */
 extern ppu_2c02 ppu;
 
 static const u32 nes_palette[] = {
-	0x7C7C7C, 0x0000FC, 0x0000BC, 0x4428BC, 0x940084, 0xA80020, 0xA81000,
-	0x881400, 0x503000, 0x007800, 0x006800, 0x005800, 0x004058, 0x000000,
-	0x000000, 0x000000, 0xBCBCBC, 0x0078F8, 0x0058F8, 0x6844FC, 0xD800CC,
-	0xE40058, 0xF83800, 0xE45C10, 0xAC7C00, 0x00B800, 0x00A800, 0x00A844,
-	0x008888, 0x000000, 0x000000, 0x000000, 0xF8F8F8, 0x3CBCFC, 0x6888FC,
-	0x9878F8, 0xF878F8, 0xF85898, 0xF87858, 0xFCA044, 0xF8B800, 0xB8F818,
-	0x58D854, 0x58F898, 0x00E8D8, 0x787878, 0x000000, 0x000000, 0xFCFCFC,
-	0xA4E4FC, 0xB8B8F8, 0xD8B8F8, 0xF8B8F8, 0xF8A4C0, 0xF0D0B0, 0xFCE0A8,
-	0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8, 0x00FCFC, 0xF8D8F8, 0x000000,
-	0x000000
+    0x7C7C7C, 0x0000FC, 0x0000BC, 0x4428BC, 0x940084, 0xA80020, 0xA81000,
+    0x881400, 0x503000, 0x007800, 0x006800, 0x005800, 0x004058, 0x000000,
+    0x000000, 0x000000, 0xBCBCBC, 0x0078F8, 0x0058F8, 0x6844FC, 0xD800CC,
+    0xE40058, 0xF83800, 0xE45C10, 0xAC7C00, 0x00B800, 0x00A800, 0x00A844,
+    0x008888, 0x000000, 0x000000, 0x000000, 0xF8F8F8, 0x3CBCFC, 0x6888FC,
+    0x9878F8, 0xF878F8, 0xF85898, 0xF87858, 0xFCA044, 0xF8B800, 0xB8F818,
+    0x58D854, 0x58F898, 0x00E8D8, 0x787878, 0x000000, 0x000000, 0xFCFCFC,
+    0xA4E4FC, 0xB8B8F8, 0xD8B8F8, 0xF8B8F8, 0xF8A4C0, 0xF0D0B0, 0xFCE0A8,
+    0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8, 0x00FCFC, 0xF8D8F8, 0x000000,
+    0x000000
 };
 
 static u32 render_data[NES_RES_X * NES_RES_Y];
@@ -41,37 +42,38 @@ INLINED u32 Sample_Nes_Palette(u8 index) {
 }
 
 /* Local declarations */
-static void Render_Background(u16 scanline, u16 *background);
+static void Render_Background(u16 *background);
+static void Composite_Scanline(i16 scanline, u16 *background, u16 *spr_back, u16 *spr_front);
+
 
 /* Rendering Function Definitions */
 
 /* Render_Scanline renders background, sprites (front, back, and zero)
  * and then passes them to a compositor.   */
-void Render_Scanline(u16 scanline) {
-    u16 render_buffer[256 * 4];
+void Render_Scanline(i16 scanline) {
+    u16 render_buffer[256 * 3];
     u16 *background = render_buffer,
-        *spr_front = render_buffer + 256,
-        *spr_back  = render_buffer + (2 * 256),
-        *spr_zero  = render_buffer + (3 * 256);
+        *spr_back = render_buffer + 256,
+        *spr_front  = render_buffer + (2 * 256);
         
     /* Enforce cleared memory */
     bzero(render_buffer, 256 * 4);
     
-    if (ppu.mask & SHOW_BG) Render_Background(scanline, background);
-    //if (ppu.mask & SHOW_SPRITES) Render_Sprites(scanline, spr_front, spr_back, spr_zero);
+    if (ppu.mask & SHOW_BG) Render_Background(background);
+    //if (ppu.mask & SHOW_SPRITES) Render_Sprites(scanline, spr_front, spr_back);
     
     /* Compositor renders directly into the screen buffer. */
-    /* Composite_Scanline(scanline, background, spr_front, spr_back, spr_zero); */
+    if (scanline > -1 && scanline < 240) {
+        Composite_Scanline(scanline, background, spr_front, spr_back);
+    }
 }
 
 /* Render_Background renders the background at the particular scanline.
  * Since this is rather confusing, I'm using more verbose variable names
  * and commenting the shit out of this code. */
-static void Render_Background(u16 scanline, u16 *background) {
-    u16 clip;           /* Clip offset */
+static void Render_Background(u16 *background) {
+    u16 clip_amount;    /* Clip offset */
     u16 i;              /* Iterator variable */
-    //u16 y_offset;       /* Y offset, used for tile and pattern offset */
-    //u16 x_offset;       /* X offset, used in tile offset and pixel calculation */
     u16 tile_no;        /* Tile number, as specified in name table. */
     u16 pattern_base;   /* Base pattern table */
     u16 pattern_offset; /* Pattern table offset */
@@ -85,12 +87,18 @@ static void Render_Background(u16 scanline, u16 *background) {
 
     /* If CLIP_BG is set in PPUMASK, the left-most 8 pixels are not
      * rendered. */
-    clip = IS_SET(ppu.mask, CLIP_BG) ? 8 : 0;
+    clip_amount = IS_SET(ppu.mask, CLIP_BG) ? 8 : 0;
     
     
     for (i = 0; i < 264; i++) {
-        /* Calculate some useful offsets. */
-        //x_offset =  | ppu.scrollx;
+        /* Check to see if the pixel should be rendered. This means
+         * that it is within clip_amount and 256, and that it has a lower
+         * two bits that are non-zero. The first of those conditions can
+         * be checked here.  We don't do this restriction in the loop
+         * condition, because we still need to update registers after
+         * each iteration. */
+        if (i < clip_amount || i >= 256) goto update;
+        
         /* Calculate the name table index (nt_index).
          * The name table index calculated here is simply used to select
          * the correct name table (0, 1, 2, or 3) from memory.  Conveniently
@@ -104,7 +112,7 @@ static void Render_Background(u16 scanline, u16 *background) {
          * In case it isn't clear, bits 10 and 11 of the address provide
          * the name table index. Hence, the shift 10 bits followed by
          * a logical AND 0x03. */
-        nt_index = (ppu.addr >> 10) & 0x03;
+        nt_index = (ppu.addr >> 10) & 0x0003;
         
         /* Calculate the tile number.
          * Each tile of the NES's display is stored in a name table as
@@ -123,7 +131,111 @@ static void Render_Background(u16 scanline, u16 *background) {
         pattern_offset = pattern_base + (tile_no << 4) + ppu.scrolly;
         
         /* Calculate the current attribute table entry 
+         * The attribute table stores the 2 high bits of the palette index.
          * Attribute table entries start at 0x03C0 from the name table's
-         * beginning. */
+         * beginning.  Attribute table entires represent a 32x32 pixel
+         * area, which means there are 256 / 32 = 8 bytes per row.  The 
+         * x component of the PPU address (5 bits) is a multiple of 8 in
+         * terms of x-coordinate pixels, and with 32 pixels per entry, 
+         * you can just shift the five least significant bits two to the
+         * right: 
+         * 
+         *         x = (ppu.addr & 0x001F) >> 2
+         * 
+         * For the y component, which also is in multiples of 8,
+         * needs to be divided by 4, to get the y index, then multiplied by
+         * 8 to skip to the right "row", as this is a one-dimensional array.
+         * The net is a shift left of 1, while disregarding the two least
+         * significant bits of y. Here's an example:
+         * 
+         *         (0b11111 >> 2) << 1 = 0b00111 << 1 = 0b01110 
+         * 
+         * The end result?  We first only grab the 3 most significant bits
+         * of y, to account for a divide by 4.  We have a total of a shift
+         * right 5 to get the bits from the address, followed by a shift
+         * left 1 to account for the divide by 4, then multiply by 8. 
+         * Therefore, the formula is:
+         * 
+         *         y = (ppu.addr & 0x0380) >> 4
+         * */
+                                                        /* Y component */            /* X component */
+        current_attr = ppu.nt_map[nt_index][0x03C0 + ((ppu.addr & 0x0380) >> 4) + ((ppu.addr & 0x001F) >> 2)];
+        
+        /* Once we acquire the attribute table entry, we need to grab the
+         * two bits that are relevant to the 16x16 area we are in.  This can
+         * be achieved by looking at the second bit of the x and y components
+         * of the PPU address; The second bit of x is the second bit of the
+         * PPU address, so an AND of 0x0002 will obtain that bit.  The y
+         * bit requires an and of 0byyy[y]yxxxxx = 0x0040.  We need to
+         * shift that one 4 bits.  Since we are looking at 4 quadrants
+         * with 8 bits of data, we effectively shift by a multiple of 2
+         * of the combined bits, which is why the x bit isn't shifted right
+         * 1.  Finally, we AND with 0x03 to only obtain the two bits of the
+         * byte that we want. */
+                             /* Y component */            /* X component */
+        current_attr >>= ((ppu.addr & 0x0040) >> 4) | (ppu.addr & 0x0002);
+        current_attr &= 0x03;
+         
+        /* The two low bits are calculated from the pattern table itself. This
+         * is where the precision from scrollx and scrolly help. */
+        current_pixel = ((Read_Cartridge_Chr(pattern_offset) >> ppu.scrollx) & 1)
+                       | (((Read_Cartridge_Chr(pattern_offset + 8) >> ppu.scrollx) & 1) << 1)
+                       | (current_attr << 2);
+        
+        /* Check that the lower two bits are set.  If they are, we can
+         * render this pixel to the background line. */
+        if (current_pixel & 0x03) {
+            background[i] = current_pixel; //| 0x3F00;
+        }
+update:
+        /* Update the x scroll position and the PPU address.  Every 8
+         * pixels, we have to increment the PPU address, so we check
+         * the x component of PPUSCROLL */
+        if (7 == ppu.scrollx) {
+            /* Reconstruct the address to account for new shifts in value:
+             * Every 32 bytes, we change name tables; this is achieved
+             * by checking, pre-increment, for all x bits to be set to 1,
+             * which is 0b11111 = 0x1F = 31.  We flip bit 10, using EOR
+             * of 0x0400.  We then reconstruct the new address, using
+             * the upper 10 bits and the lower 5, incremented. */
+            if ((ppu.addr & 0x001F) == 0x001F) ppu.addr ^= 0x0400;
+            ppu.addr = (ppu.addr & 0x7FE0) + ((ppu.addr + 1) & 0x001F);
+        }
+        ppu.scrollx = (ppu.scrollx + 1) & 7;    /* & 7 <=> % 8 */
     }
+    
+    /* Update the y scroll position and the PPU address, as a result.
+     * Every 8 lines, we have to increment to a new y component for
+     * the PPU address. */
+    if (7 == ppu.scrolly) {
+        /* This code is close to the case for x, with the only difference
+         * being the bit flipped for name table changes, and the 
+         * increment/mask change reflecting the y component instead of the
+         * x component */
+        if ((ppu.addr & 0x03E0) == 0x03E0) ppu.addr ^= 0x0800;
+        ppu.addr = (ppu.addr & 0xFC1F) + ((ppu.addr + 0x0020) & 0x03E0);
+    }
+    ppu.scrolly = (ppu.scrolly + 1) & 7;    /* & 7 <=> % 8 */
+}
+
+static void Composite_Scanline(i16 scanline, u16 *background, u16 *spr_back, u16 *spr_front) {
+    u16 i;
+    char buf[256];
+    /* For now, only the background gets drawn. */
+    for (i = 0; i < 256; i++) {
+        buf[i] = (background[i]) ? '0' + background[i] : ' ';
+        render_data[(scanline * NES_RES_X) + i] = buf[i]; //nes_palette[ppu.palette[background[i] & 0x000F]];
+    }
+}
+
+void Dump_Render(char *file) {
+    int x, y;
+    FILE *fp = fopen(file, "w");
+    for (y = 0; y < NES_RES_Y; y++) {
+        for (x = 0; x < NES_RES_X; x++) {
+            fprintf(fp, "%c ", render_data[(y * NES_RES_Y) + x]);
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
 }

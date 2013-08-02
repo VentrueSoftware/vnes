@@ -151,6 +151,8 @@ typedef void(*op_func)(u8);
 /* Used for distinguishing undocumented opcodes (set to 0). */
 #define _ 0
 
+INLINED void Do_Nmi(void);
+
 /* Opcode X-macro definition.  Format is (name, mode, cycles).  UNS
  * stands for "unsupported," and may be needed later for some games.
  * Asterisks (*) next to hex value means that an additional cycle

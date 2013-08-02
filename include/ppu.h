@@ -34,7 +34,7 @@
 #define BG_PTRN_TABLE       0x10
 #define SPRITE_SIZE         0x20
 #define EXT_PIN_SELECT      0x40
-#define GEN_NMI_AT_VBLANK   0x80
+#define NMI_ON_VBLANK       0x80
 
 /* PPUMASK Flags */
 #define MASK_GRAYSCALE      0x01

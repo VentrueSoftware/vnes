@@ -53,6 +53,8 @@ INLINED void Cpu_Add_Cycles(u32 cycles);
 
 INLINED VNES_Err Cpu_Step(void);
 
+INLINED void Cpu_Nmi(void);
+
 void Cpu_Run(void);
 
 void Cpu_Dump(void);

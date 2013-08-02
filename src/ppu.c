@@ -14,6 +14,7 @@
  */
 
 #include "ppu.h"
+#include "cpu.h"
 #include "bitwise.h"
 #include "cart.h"
 #include "render.h"
@@ -44,13 +45,18 @@ ppu_2c02 ppu;
 
 /* Initialize PPU */
 INLINED void Ppu_Init(void) {
+    int i;
     ppu.status = 0;
     ppu.mask = 0;
     ppu.ctrl = 0;
     ppu.oamaddr = 0;
     ppu.latch = 0;
     ppu.addr = 0;
-    ppu.scanline = 241;
+    ppu.scanline = -1;
+    
+    for (i = 0; i < 0x10; i++) {
+        ppu.palette[i] = i;
+    }
 }
 
 INLINED void Set_Nametable_Mirroring(u8 mode) {
@@ -73,15 +79,26 @@ INLINED void Set_Nametable_Mirroring(u8 mode) {
 }
 
 INLINED void Ppu_Add_Cycles(u32 cycles) {
-	ppu.cycles += cycles;
-	/* Check for rendering code */
-	if (ppu.cycles > 340) {
-		ppu.cycles -= 340;
+    ppu.cycles += cycles;
+    /* Check for rendering code */
+    if (ppu.cycles > 340) {
+        extern void Log_Line(const char *format, ...);
+        ppu.cycles -= 340;
         
         /* Advance scanline */
         ppu.scanline = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
-		Render_Scanline(ppu.scanline);
-	}
+        Render_Scanline(ppu.scanline);
+        if (ppu.scanline == 240) {
+            Log_Line("Executing NMI!");
+            Log_Line("Palette: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+                ppu.palette[0], ppu.palette[1], ppu.palette[2], ppu.palette[3], ppu.palette[4], ppu.palette[5], 
+                ppu.palette[6], ppu.palette[7], ppu.palette[8], ppu.palette[9], ppu.palette[10], ppu.palette[11], 
+                ppu.palette[12], ppu.palette[13], ppu.palette[14], ppu.palette[15]);
+            FLAG_SET(ppu.status, VBLANK_STARTED);
+            if (IS_SET(ppu.ctrl, NMI_ON_VBLANK)) Cpu_Nmi();
+            Dump_Render("screen.dump");
+        }
+    }
 }
 
 /* Read/Write */

@@ -61,9 +61,11 @@ icart *Load_iNES(FILE *fp) {
     cart->prg_pages = header[0];
     cart->chr_pages = header[1];
     
-    /* Set mirror mode */
+    /* Set mirror mode */{
+    extern void Set_Nametable_Mirroring(u8 mode);
     cart->flags = ((header[2] & 0x08) >> 2) | (header[2] & 0x01);
-    /* Set other flags */
+    Set_Nametable_Mirroring(cart->flags & 0x03);
+    }/* Set other flags */
     cart->flags |= (header[2] & 0x02) ? INES_HAS_SAVERAM : 0;
     cart->flags |= (header[2] & 0x04) ? INES_HAS_TRAINER : 0;
     cart->flags |= (header[5] & 0x01) ? INES_IS_PAL : 0;
