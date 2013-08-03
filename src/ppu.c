@@ -55,10 +55,6 @@ INLINED void Ppu_Init(void) {
     ppu.latch = 0;
     ppu.addr = 0;
     ppu.scanline = 0;
-    
-    for (i = 0; i < 0x10; i++) {
-        ppu.palette[i] = i;
-    }
 }
 
 INLINED void Set_Nametable_Mirroring(u8 mode) {
@@ -237,7 +233,7 @@ static u8 Read_Vram(u16 addr) {
 
 static void Write_Vram(u16 addr, u8 value) {
     addr &= 0x3FFF;
-    if (addr < 0x2000) {/* Write_Cartridge_Chr(addr, value) */}
+    if (addr < 0x2000) {Log_Line("Invalid write address %04X: %02X", addr, value);/* Write_Cartridge_Chr(addr, value) */}
     else if (addr < 0x3F00) {
         /* Resolve address using nametable mirror map and offset. */
         register u8 index = (addr >> 10) & 0x03;

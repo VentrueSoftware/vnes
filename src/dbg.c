@@ -81,13 +81,13 @@ void Start_Dbg(void) {
         switch (cmd) {
             case 's': 
                 Cpu_Step();
-                //Log_Instruction();
+                Log_Instruction();
             break;
             case 'r': {
                 u8 op;
                 while (op_fn[(op = Mem_Fetch(cpu.pc))] != op_fn[0xFF]) {
                     Cpu_Step();
-                    //Log_Instruction();
+                    Log_Instruction();
                 }
             }
             default:
@@ -209,8 +209,8 @@ void Log_Line(const char *format, ...) {
 
 /* Log an instruction */
 void Log_Instruction(void) {
-#if 0
-    char line[100];
+#if 1
+    char line[128];
     u8 ops[3], len, i;
 
     sprintf(line, "%04X ", cpu.pc);
@@ -226,9 +226,9 @@ void Log_Instruction(void) {
     for (; i < 3; i++) {
         sprintf(line + 5 + (3 * i), "   ");
     }
-    sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:%3d",
+    sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:%3d PPUADDR:%04X",
         Stringify_Instruction(ops, len),
-        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, ppu.cycles, ppu.scanline);
+        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, ppu.cycles, ppu.scanline, ppu.addr);
     
     //wprintw(logwin, "%s\n", line);
     //wrefresh(logwin);
