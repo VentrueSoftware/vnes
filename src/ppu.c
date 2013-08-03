@@ -96,8 +96,9 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
                 Cpu_Nmi();
             }
             Dump_Render("screen.data");
-            Log_Line("Frame written.");
             Dump_Name_Tables();
+            Dump_Attr_Tables();
+            Log_Line("Frame written.");
         }
     }
 }
@@ -161,6 +162,7 @@ static INLINED u8 Read_Ppu_Data(void) {
 static INLINED void Write_Ppu_Ctrl(u8 value) {
     Log_Line("Writing to PPUCTRL, value: %02X", value);
     ppu.ctrl = value;
+    ppu.temp_addr = (ppu.temp_addr & 0xF3FF) | (((u16)(value & 0x03)) << 10);
 }
 
 /* Set the PPUMASK flags. */
@@ -197,10 +199,11 @@ static INLINED void Write_Ppu_Scroll(u8 value) {
 static INLINED void Write_Ppu_Addr(u8 value) {
     if (0 == ppu.latch) {
         ppu.latch = 1;
-        ppu.addr = ((u16)(value)) << 8;
+        ppu.temp_addr = (((u16)(value)) << 8) | (ppu.temp_addr & 0x00FF);
     } else {
         ppu.latch = 0;
-        ppu.addr |= value;
+        ppu.temp_addr = (ppu.temp_addr & 0xFF00) | (u16)(value);
+        ppu.addr = ppu.temp_addr;
     }
 }
 

@@ -199,7 +199,7 @@ update:
              * which is 0b11111 = 0x1F = 31.  We flip bit 10, using EOR
              * of 0x0400.  We then reconstruct the new address, using
              * the upper 10 bits and the lower 5, incremented. */
-            if ((ppu.addr & 0x001F) == 0x001F) ppu.addr ^= 0x0400;
+            //if ((ppu.addr & 0x001F) == 0x001F) ppu.addr ^= 0x0400;
             ppu.addr = (ppu.addr & 0x7FE0) | ((ppu.addr + 1) & 0x001F);
         }
         ppu.scrollx = (ppu.scrollx + 1) & 7;    /* & 7 <=> % 8 */
@@ -213,7 +213,7 @@ update:
          * being the bit flipped for name table changes, and the 
          * increment/mask change reflecting the y component instead of the
          * x component */
-        if ((ppu.addr & 0x03E0) == 0x03E0) ppu.addr ^= 0x0800;
+        //if ((ppu.addr & 0x03E0) == 0x03E0) ppu.addr ^= 0x0800;
         ppu.addr = (ppu.addr & 0xFC1F) | ((ppu.addr + 0x0020) & 0x03E0);
     }
     ppu.scrolly = (ppu.scrolly + 1) & 7;    /* & 7 <=> % 8 */
@@ -277,6 +277,23 @@ void Dump_Name_Tables(void) {
         for (y = 0; y < 240; y++) {
             for (x = 0; x < 256; x++) {
                 fprintf(fp, "%03u ", ppu.nt_map[index][((y / 8) * 32) + (x / 8)]);
+            }
+            fprintf(fp, "\n");
+        }
+        fprintf(fp, "\n");
+    }
+    fclose(fp);
+}
+
+void Dump_Attr_Tables(void) {
+    u8 index; u16 x, y;
+    FILE *fp = fopen("at.data", "w");
+    for (index = 0; index < 4; index++) {
+        fprintf(fp, "[Name table %u]\n", index);
+        for (y = 0; y < 8; y++) {
+            fprintf(fp, "\t");
+            for (x = 0; x < 8; x++) {
+                fprintf(fp, "%02x ", ppu.nt_map[index][0x3C0 + (y * 8) + x]);
             }
             fprintf(fp, "\n");
         }
