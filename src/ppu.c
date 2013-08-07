@@ -13,11 +13,14 @@
  *          File created.
  */
 
+#include <string.h>
 #include "ppu.h"
 #include "cpu.h"
 #include "bitwise.h"
 #include "cart.h"
 #include "render.h"
+
+#define PPU_POWERUP_NTSC 29658
 
 #define MIRROR_HORIZONTAL   0
 #define MIRROR_VERTICAL     1
@@ -48,13 +51,14 @@ ppu_2c02 ppu;
 /* Initialize PPU */
 INLINED void Ppu_Init(void) {
     int i;
-    ppu.status = 0;
+    ppu.status = VBLANK_STARTED | SPRITE_OVERFLOW;
     ppu.mask = 0;
     ppu.ctrl = 0;
     ppu.oamaddr = 0;
     ppu.latch = 0;
     ppu.v_addr = 0;
     ppu.scanline = 0;
+    memset(ppu.nt, 0xFF, sizeof(u8) * 0x2000);
 }
 
 INLINED void Set_Nametable_Mirroring(u8 mode) {
@@ -98,7 +102,7 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
             Dump_Render("screen.data");
             Dump_Name_Tables();
             Dump_Attr_Tables();
-            Log_Line("Frame written.");
+            Log_Line("Frame written. CPU cycles: %u", Cpu_Get_Cycles());
         }
     }
 }
@@ -119,12 +123,20 @@ void Write_Ppu(u16 addr, u8 value) {
     ppu.last_write = value;
     //Log_Line("Writing to PPU address %04x, value %02x", addr, value);
     switch (addr) {
-        case PPUCTRL: Write_Ppu_Ctrl(value); break;
-        case PPUMASK: Write_Ppu_Mask(value); break;
+        case PPUCTRL:
+            if (Cpu_Get_Cycles() > PPU_POWERUP_NTSC) Write_Ppu_Ctrl(value); 
+        break;
+        case PPUMASK: 
+            if (Cpu_Get_Cycles() > PPU_POWERUP_NTSC) Write_Ppu_Mask(value);
+        break;
         case OAMADDR: Write_Ppu_Oam_Addr(value); break;
         case OAMDATA: Write_Ppu_Oam_Data(value); break;
-        case PPUSCROLL: Write_Ppu_Scroll(value); break;
-        case PPUADDR: Write_Ppu_Addr(value); break;
+        case PPUSCROLL: 
+            if (Cpu_Get_Cycles() > PPU_POWERUP_NTSC) Write_Ppu_Scroll(value);
+        break;
+        case PPUADDR: 
+            if (Cpu_Get_Cycles() > PPU_POWERUP_NTSC) Write_Ppu_Addr(value); 
+        break;
         case PPUDATA: Write_Ppu_Data(value); break;
         default: 
             printf("Unrecognized PPU Register address (0x%04X)!\n", addr);
@@ -239,7 +251,11 @@ static u8 Read_Vram(u16 addr) {
 
 static void Write_Vram(u16 addr, u8 value) {
     addr &= 0x3FFF;
-    if (addr < 0x2000) {Log_Line("Invalid write address %04X: %02X", addr, value);/* Write_Cartridge_Chr(addr, value) */}
+    if (addr < 0x2000) {
+#if 0
+        Log_Line("Invalid write address %04X: %02X", addr, value);/* Write_Cartridge_Chr(addr, value) */
+#endif
+    }
     else if (addr < 0x3F00) {
         /* Resolve address using nametable mirror map and offset. */
         register u8 index = (addr >> 10) & 0x03;

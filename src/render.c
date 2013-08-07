@@ -116,8 +116,9 @@ static void Render_Background(u16 *background) {
          * In case it isn't clear, bits 10 and 11 of the address provide
          * the name table index. Hence, the shift 10 bits followed by
          * a logical AND 0x03. */
+        if (0 == ((ppu.v_addr >> 10) & 3)) ppu.v_addr |= 0x2000;
         nt_index = (ppu.v_addr >> 10) & 0x0003;
-        
+
         /* Calculate the tile number.
          * Each tile of the NES's display is stored in a name table as
          * an index into the pattern table.  The name table map (ppu.nt_map)
@@ -193,7 +194,7 @@ static void Render_Background(u16 *background) {
         /* Check that the lower two bits are set.  If they are, we can
          * render this pixel to the background line. */
         if (current_pixel & 0x03) {
-            if (!found) {found = 1; Log_Line("Woot: %02X", current_pixel);}
+            //if (!found) {found = 1; Log_Line("Woot: %02X", current_pixel);}
             background[i] = current_pixel | 0x3F00;
             render_nums[(ppu.scanline * NES_RES_X) + i] = tile_no;
         }
@@ -201,7 +202,9 @@ update:
         /* Update the x scroll position and the PPU address.  Every 8
          * pixels, we have to increment the PPU address, so we check
          * the x component of PPUSCROLL */
-        if (7 == ppu.scrollx) {
+        ppu.scrollx++;
+        if (8 == ppu.scrollx) {
+            ppu.scrollx = 0;
             /* Reconstruct the address to account for new shifts in value:
              * Every 32 bytes, we change name tables; this is achieved
              * by checking, pre-increment, for all x bits to be set to 1,
@@ -215,7 +218,6 @@ update:
                 ppu.v_addr++;
             }
         }
-        ppu.scrollx = (ppu.scrollx + 1) & 7;    /* & 7 <=> % 8 */
     }
     
     /* Dot 256 increments the scanline */

@@ -61,6 +61,11 @@ INLINED u8 Cpu_Fetch(void) {
 INLINED void Cpu_Add_Cycles(u32 cycles) {
     cpu.cycles += cycles;
     Ppu_Add_Cycles(3 * cycles);
+    //if (cpu.cycles > 3 * (1025 * 261)) cpu.cycles %= (1025 * 261);
+}
+
+INLINED u32 Cpu_Get_Cycles(void) {
+    return cpu.cycles;
 }
 
 INLINED VNES_Err Cpu_Step(void) {

@@ -50,6 +50,7 @@ INLINED void Cpu_Reset(void);
 INLINED u8 Cpu_Fetch(void);
 
 INLINED void Cpu_Add_Cycles(u32 cycles);
+INLINED u32 Cpu_Get_Cycles(void);
 
 INLINED VNES_Err Cpu_Step(void);
 
