@@ -53,7 +53,7 @@ INLINED void Ppu_Init(void) {
     ppu.ctrl = 0;
     ppu.oamaddr = 0;
     ppu.latch = 0;
-    ppu.addr = 0;
+    ppu.v_addr = 0;
     ppu.scanline = 0;
 }
 
@@ -151,8 +151,8 @@ static INLINED u8 Read_Oam_Data(void) {
 /* Read PPUDATA */
 static INLINED u8 Read_Ppu_Data(void) {
     register u8 value = 0;
-    value = Read_Vram(ppu.addr);
-    ppu.addr += (ppu.status & VRAM_INCREMENT) ? 32 : 1;
+    value = Read_Vram(ppu.v_addr);
+    ppu.v_addr += (ppu.status & VRAM_INCREMENT) ? 32 : 1;
     return value;
 }
 
@@ -162,7 +162,7 @@ static INLINED u8 Read_Ppu_Data(void) {
 static INLINED void Write_Ppu_Ctrl(u8 value) {
     Log_Line("Writing to PPUCTRL, value: %02X", value);
     ppu.ctrl = value;
-    ppu.temp_addr = (ppu.temp_addr & 0xF3FF) | (((u16)(value & 0x03)) << 10);
+    ppu.t_addr = (ppu.t_addr & 0xF3FF) | (((u16)(value & 0x03)) << 10);
 }
 
 /* Set the PPUMASK flags. */
@@ -187,31 +187,34 @@ static INLINED void Write_Ppu_Oam_Data(u8 value) {
  * 0-7, which is done with a logical AND with 0x07. */
 static INLINED void Write_Ppu_Scroll(u8 value) {
     if (0 == ppu.latch) {
-        ppu.latch = 1;
+        ppu.t_addr = (ppu.t_addr & 0xFFE0) | ((value & 0xF8) >> 3);
         ppu.scrollx = value & 0x07;
+        ppu.latch = 1;
     } else {
-        ppu.latch = 0;
+        ppu.t_addr = (ppu.t_addr & 0xFC1F) | ((value & 0xF8) >> 3);
         ppu.scrolly = value & 0x07;
+        ppu.latch = 0;
     }
 }
 
 /* Set PPUADDR */
 static INLINED void Write_Ppu_Addr(u8 value) {
     if (0 == ppu.latch) {
+        ppu.t_addr = (((u16)(value) & 0x3F) << 8) | (ppu.t_addr & 0x00FF);
+        ppu.t_addr = ppu.t_addr & 0x3FFF;
         ppu.latch = 1;
-        ppu.temp_addr = (((u16)(value)) << 8) | (ppu.temp_addr & 0x00FF);
     } else {
+        ppu.t_addr = (ppu.t_addr & 0xFF00) | (u16)(value);
+        ppu.v_addr = ppu.t_addr;
         ppu.latch = 0;
-        ppu.temp_addr = (ppu.temp_addr & 0xFF00) | (u16)(value);
-        ppu.addr = ppu.temp_addr;
     }
 }
 
 /* Set PPUDATA */
 INLINED void Write_Ppu_Data(u8 value) {
-    Write_Vram(ppu.addr, value);
-    //Log_Line("Wrote value %02X to %04X", value, ppu.addr);
-    ppu.addr += (ppu.ctrl & VRAM_INCREMENT) ? 32 : 1;
+    Write_Vram(ppu.v_addr, value);
+    //Log_Line("Wrote value %02X to %04X", value, ppu.v_addr);
+    ppu.v_addr += (ppu.ctrl & VRAM_INCREMENT) ? 32 : 1;
 }
 
 /* Read from VRAM */

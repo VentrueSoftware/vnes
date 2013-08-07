@@ -228,7 +228,7 @@ void Log_Instruction(void) {
     }
     sprintf(line + 14, "  %-32sA:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3u SL:%3d PPUADDR:%04X",
         Stringify_Instruction(ops, len),
-        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, ppu.cycles, ppu.scanline, ppu.addr);
+        cpu.a, cpu.x, cpu.y, cpu.p, cpu.s, ppu.cycles, ppu.scanline, ppu.v_addr);
     
     //wprintw(logwin, "%s\n", line);
     //wrefresh(logwin);

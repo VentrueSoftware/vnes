@@ -71,8 +71,8 @@ typedef struct ppu_2c02 {
     u16 scrolly;    /* Scroll y */
     
     u16 addr;       /* VRAM Address (PPUADDR) */
-    u16 vram_addr;	/* VRAM Address (PPUADDR) */
-    u16 temp_addr;	/* Temporary VRAM address */
+    u16 v_addr;	    /* VRAM Address (PPUADDR) */
+    u16 t_addr;	    /* Temporary VRAM address */
     
     u8 vram_value;  /* VRAM value last fetched. */
     
