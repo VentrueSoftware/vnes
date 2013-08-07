@@ -80,15 +80,22 @@ INLINED void Set_Nametable_Mirroring(u8 mode) {
     }
 }
 
+u32 frames = 0;
 INLINED void Ppu_Add_Cycles(u32 cycles) {
     ppu.cycles += cycles;
     /* Check for rendering code */
     if (ppu.cycles > 340) {
         ppu.cycles -= 340;
         
+        ppu.scanline++;// = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
         /* Advance scanline */
-        ppu.scanline = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
-        Render_Scanline(ppu.scanline);
+        if (ppu.scanline == 260) {
+            ppu.scanline = -1;
+            frames++;
+        }
+        if (frames > 3) {
+            Render_Scanline(ppu.scanline);
+        }
         if (ppu.scanline == 241) {
             Log_Line("Palette: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                 ppu.palette[0], ppu.palette[1], ppu.palette[2], ppu.palette[3], ppu.palette[4], ppu.palette[5], 
