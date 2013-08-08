@@ -34,6 +34,8 @@ struct win_impl {
 
     /* OpenGL attributes */
     GLint       *att;
+    GLubyte     *buffer;
+    GLuint        texid;
     
     /* X11-specific variables */
     Display                 *dpy;
@@ -51,6 +53,8 @@ struct win_impl {
         Atom delete_window;
     } wmproto;
 };
+
+void Init_GL_2D(void);
 
 int Open_Display(vnes_display **disp, u16 w, u16 h) {
     struct win_impl *win;
@@ -102,7 +106,8 @@ int Open_Display(vnes_display **disp, u16 w, u16 h) {
     glXMakeCurrent(win->dpy, win->win, win->glc);
     
     /* Enable GL Depth buffer */
-    glEnable(GL_DEPTH_TEST);
+    Init_GL_2D();
+    //glEnable(GL_DEPTH_TEST);
     
     /* Attach window manager messages */
     win->wmproto.delete_window = XInternAtom(win->dpy, "WM_DELETE_WINDOW", False);
@@ -126,24 +131,28 @@ void Close_Display(vnes_display *disp) {
     free(disp);
 }
 
-void Test_GL_Render(void) {
-    glClearColor(1.0, 1.0, 1.0, 1.0);
+void Init_GL_2D(void) {
+    /* Basic GL Initialization for 2D */
+    glClearColor(.0, .0, .0, .0);
+    glShadeModel(GL_FLAT);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+}
+
+void Test_GL_Render(GLuint tex) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(-1., 1., -1., 1., 1., 20.);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    gluLookAt(0., 0., 10., 0., 0., 0., 0., 1., 0.);
-
-    glBegin(GL_QUADS);
-        glColor3f(1., 0., 0.); glVertex3f(-1.0, -1.0, 0.);
-        glColor3f(0., 1., 0.); glVertex3f( 1.0, -1.0, 0.);
-        glColor3f(0., 0., 1.); glVertex3f( 1.0,  1.0, 0.);
-        glColor3f(1., 1., 0.); glVertex3f(-1.0,  1.0, 0.);
-    glEnd();
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    if (0 != tex) {
+        glBindTexture(GL_TEXTURE_2D, tex);
+        
+        glBegin(GL_QUADS);
+            glTexCoord2f(0., 0.); glVertex3f(-1.0, -1.0, 0.);
+            glTexCoord2f(0., 1.); glVertex3f(-1.0,  1.0, 0.);
+            glTexCoord2f(1., 1.); glVertex3f( 1.0,  1.0, 0.);
+            glTexCoord2f(1., 0.); glVertex3f( 1.0, -1.0, 0.);
+        glEnd();
+    }
+    glDisable(GL_TEXTURE_2D);
 }
 
 void Display_Loop(vnes_display *disp) {
@@ -160,7 +169,7 @@ void Display_Loop(vnes_display *disp) {
             win->width = win->gwa.width;
             win->height = win->gwa.height;
             Set_Display_Title(disp, "[VNES] %ux%u", win->width, win->height);
-            Test_GL_Render();
+            Test_GL_Render(win->texid);
             glXSwapBuffers(win->dpy, win->win);
         } else if (xev->type == KeyPress) {
             XKeyPressedEvent *keypress = (XKeyPressedEvent *)xev;
@@ -191,4 +200,27 @@ void Set_Display_Title(vnes_display *disp, const char *format, ...) {
     vsprintf(title, format, args);
     XStoreName(disp->win->dpy, disp->win->win, title);
     va_end(args);
+}
+
+void Set_Display_Source_Impl(vnes_display *disp) {
+    /* Need to free previous texture, if applicable */
+    if (disp->win->buffer) {
+        free(disp->win->buffer);
+        glDeleteTextures(1, &(disp->win->texid));
+    }
+    
+    /* Generate the new buffer/texture */
+    disp->win->buffer = (GLubyte *)malloc(sizeof(GLubyte) * disp->src.width * disp->src.height * 4);
+    memcpy(disp->win->buffer, disp->src.data, sizeof(GLubyte) * disp->src.width * disp->src.height * 4);
+    //memset(disp->win->buffer, (GLubyte) 155, sizeof(GLubyte) * disp->src.width * disp->src.height * 4);
+    glGenTextures(1, &(disp->win->texid));
+    glBindTexture(GL_TEXTURE_2D, disp->win->texid);
+    
+    /* Set texture parameters */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);    // GL_NEAREST is another choice
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, disp->src.width, disp->src.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, disp->win->buffer);
 }

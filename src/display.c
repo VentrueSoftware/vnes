@@ -19,3 +19,11 @@
  */
  
 #include "impl/d-opengl.c"
+
+void Set_Display_Source(vnes_display *disp, void *source, u16 width, u16 height) {
+    disp->src.data = source;
+    disp->src.width = width;
+    disp->src.height = height;
+    /* Implementation-specific source setting callback */
+    Set_Display_Source_Impl(disp);
+}
