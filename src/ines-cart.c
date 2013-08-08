@@ -96,8 +96,8 @@ static void Load_iNES_Pages(ines_cart *cart, FILE *fp) {
     
     /* Read PRG and CHR ROMs */
     cart->prg_rom = (u8 **)malloc(sizeof(u8 *) * cart->prg_pages);
-    for (i = 0; i < cart->prg_pages; i++) {
     bzero(cart->prg_rom, sizeof(u8 *) * cart->prg_pages);
+    for (i = 0; i < cart->prg_pages; i++) {
         cart->prg_rom[i] = (u8 *)malloc(sizeof(u8) * INES_PRG_PAGE_SIZE);
         if (INES_PRG_PAGE_SIZE != fread(cart->prg_rom[i], sizeof(u8), INES_PRG_PAGE_SIZE, fp)) {
             /* Error(Unexpected end of file while reading PRG data) */

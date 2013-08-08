@@ -60,7 +60,7 @@ void Render_Scanline(i16 scanline) {
     /* Enforce cleared memory */
     bzero(render_buffer, 256 * 4);
     
-    Render_Background(background);
+    if (ppu.mask & SHOW_BG) Render_Background(background);
     //if (ppu.mask & SHOW_SPRITES) Render_Sprites(scanline, spr_front, spr_back);
     
     /* Compositor renders directly into the screen buffer. */
@@ -196,7 +196,7 @@ static void Render_Background(u16 *background) {
         if (current_pixel & 0x03) {
             //if (!found) {found = 1; Log_Line("Woot: %02X", current_pixel);}
             background[i] = current_pixel | 0x3F00;
-            render_nums[(ppu.scanline * NES_RES_X) + i] = tile_no;
+            //render_nums[(ppu.scanline * NES_RES_X) + i] = tile_no;
         }
 update:
         /* Update the x scroll position and the PPU address.  Every 8
