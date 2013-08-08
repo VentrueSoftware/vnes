@@ -82,10 +82,12 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
         
         Render_Scanline(ppu.scanline);
         if (ppu.scanline == 241) {
-            Log_Line("Palette: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+#if 0
+            Log_Line("BG Palette: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
                 ppu.palette[0], ppu.palette[1], ppu.palette[2], ppu.palette[3], ppu.palette[4], ppu.palette[5], 
                 ppu.palette[6], ppu.palette[7], ppu.palette[8], ppu.palette[9], ppu.palette[10], ppu.palette[11], 
                 ppu.palette[12], ppu.palette[13], ppu.palette[14], ppu.palette[15]);
+#endif
             FLAG_SET(ppu.status, VBLANK_STARTED);
             if (IS_SET(ppu.ctrl, NMI_ON_VBLANK)) {
                 Log_Line("Executing NMI!");
@@ -236,7 +238,9 @@ static u8 Read_Vram(u16 addr) {
         return value;
     } else {
         /* Palette data */
-        return ppu.palette[addr & 0x0F];
+        if (4 == (addr & 0x7) || 0 == (addr & 0xF)) return ppu.bg_pal[addr & 0x0F];
+        if (addr & 0x10) return ppu.spr_pal[addr & 0x0F];
+        return ppu.bg_pal[addr & 0x0F];
     }
     return 0xFF;
 }
@@ -255,7 +259,9 @@ static void Write_Vram(u16 addr, u8 value) {
         ppu.nt_map[index][offset] = value;
     } else {
         /* Palette data */
-        //Log_Line("Adding palette data. %04x = %02x", addr, value);
-        ppu.palette[addr & 0x0F] = value;
+        if (4 == (addr & 0x7) || 0 == (addr & 0xF))
+            ppu.bg_pal[addr & 0x0F] = ppu.spr_pal[addr & 0x0F] = value;
+        else if (addr & 0x10) ppu.spr_pal[addr & 0x0F] = value;
+        else ppu.bg_pal[addr & 0x0F] = value;
     }    
 }

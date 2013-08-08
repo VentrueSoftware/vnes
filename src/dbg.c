@@ -64,6 +64,7 @@ static void Init_Ncurses(void);
 static void Open_Log(void);
 static char *Stringify_Instruction(u8 *ops, u8 size);
 static void Log_Instruction(void);
+void Log_Line(const char *format, ...);
 
 /* Start debugger console */
 void Start_Dbg(void) {
@@ -85,6 +86,7 @@ void Start_Dbg(void) {
             break;
             case 'r': {
                 u8 op;
+                Log_Line("Testing...");
                 while (op_fn[(op = Mem_Fetch(cpu.pc))] != op_fn[0xFF]) {
                     Cpu_Step();
                     Log_Instruction();

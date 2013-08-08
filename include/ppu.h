@@ -79,7 +79,8 @@ typedef struct ppu_2c02 {
     /* Data storage */
     u8 nt[0x2000];
     u8 *nt_map[4];
-    u8 palette[0x10];
+    u8 bg_pal[0x10];
+    u8 spr_pal[0x10];
     u8 oam[0x100];
 } ppu_2c02;
 

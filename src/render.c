@@ -252,7 +252,7 @@ static void Composite_Scanline(i16 scanline, u16 *background, u16 *spr_back, u16
     for (i = 0; i < 256; i++) {
         //buf[i] = (background[i]) ? '0' + background[i] : ' ';
         if (4 != (background[i] & 0x0007)) color_index = background[i] & 0x000F;
-        render_data[(scanline * NES_RES_X) + i] = nes_palette[ppu.palette[color_index]];
+        render_data[(scanline * NES_RES_X) + i] = nes_palette[ppu.bg_pal[color_index]];
     }
 }
 
