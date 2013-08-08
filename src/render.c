@@ -84,7 +84,7 @@ static void Render_Background(u16 *background) {
     u8 nt_index,        /* Name table index */
        current_pixel,   /* Current Pixel value */
        current_attr;    /* Attribute table value */
-    u8 found = 0;
+
     /* The base pattern table is 0x0000 if BG_PTRN_TABLE = 0, 
      * 0x1000 otherwise. */
     pattern_base = IS_SET(ppu.ctrl, BG_PTRN_TABLE) ? 0x1000 : 0x0000;
@@ -246,11 +246,13 @@ update:
 
 static void Composite_Scanline(i16 scanline, u16 *background, u16 *spr_back, u16 *spr_front) {
     u16 i;
+    u8 color_index = 0;
     //char buf[256];
     /* For now, only the background gets drawn. */
     for (i = 0; i < 256; i++) {
         //buf[i] = (background[i]) ? '0' + background[i] : ' ';
-        render_data[(scanline * NES_RES_X) + i] = nes_palette[ppu.palette[background[i] & 0x000F]];
+        if (4 != (background[i] & 0x0007)) color_index = background[i] & 0x000F;
+        render_data[(scanline * NES_RES_X) + i] = nes_palette[ppu.palette[color_index]];
     }
 }
 

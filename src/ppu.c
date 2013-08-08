@@ -50,14 +50,6 @@ ppu_2c02 ppu;
 
 /* Initialize PPU */
 INLINED void Ppu_Init(void) {
-    int i;
-    ppu.status = VBLANK_STARTED | SPRITE_OVERFLOW;
-    ppu.mask = 0;
-    ppu.ctrl = 0;
-    ppu.oamaddr = 0;
-    ppu.latch = 0;
-    ppu.v_addr = 0;
-    ppu.scanline = 0;
     memset(ppu.nt, 0xFF, sizeof(u8) * 0x2000);
 }
 
