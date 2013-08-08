@@ -146,7 +146,7 @@ static INLINED u8 Read_Ppu_Status(void) {
     status |= ppu.last_write & LSB_OF_PPU;
     FLAG_CLEAR(ppu.status, VBLANK_STARTED);
     ppu.latch = 0;
-    return status;
+    return status | SPRITE0_HIT;
 }
 
 /* Read OAMDATA */

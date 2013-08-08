@@ -116,7 +116,7 @@ static void Render_Background(u16 *background) {
          * In case it isn't clear, bits 10 and 11 of the address provide
          * the name table index. Hence, the shift 10 bits followed by
          * a logical AND 0x03. */
-        if (0 == ((ppu.v_addr >> 10) & 3)) ppu.v_addr |= 0x2000;
+        //if (0 == ((ppu.v_addr >> 10) & 3)) ppu.v_addr |= 0x2000;
         nt_index = (ppu.v_addr >> 10) & 0x0003;
 
         /* Calculate the tile number.
@@ -164,12 +164,7 @@ static void Render_Background(u16 *background) {
          *         y = (ppu.v_addr & 0x0380) >> 4
          * */
                                                         /* Y component */            /* X component */
-        current_attr = 
-#if 0
-        ppu.nt_map[nt_index][0x03C0 | (ppu.v_addr & 0x0C00) | ((ppu.v_addr >> 4) ^ 0x38) | ((ppu.v_addr >> 2) & 0x07)];
-#else
-        ppu.nt_map[nt_index][0x03C0 + ((ppu.v_addr & 0x0380) >> 4) + ((ppu.v_addr & 0x001F) >> 2)];
-#endif        
+        current_attr = ppu.nt_map[nt_index][0x03C0 + ((ppu.v_addr & 0x0380) >> 4) + ((ppu.v_addr & 0x001F) >> 2)];
         /* Once we acquire the attribute table entry, we need to grab the
          * two bits that are relevant to the 16x16 area we are in.  This can
          * be achieved by looking at the second bit of the x and y components
@@ -194,9 +189,7 @@ static void Render_Background(u16 *background) {
         /* Check that the lower two bits are set.  If they are, we can
          * render this pixel to the background line. */
         if (current_pixel & 0x03) {
-            //if (!found) {found = 1; Log_Line("Woot: %02X", current_pixel);}
             background[i] = current_pixel | 0x3F00;
-            //render_nums[(ppu.scanline * NES_RES_X) + i] = tile_no;
         }
 update:
         /* Update the x scroll position and the PPU address.  Every 8
@@ -224,8 +217,11 @@ update:
     /* Update the y scroll position and the PPU address, as a result.
      * Every 8 lines, we have to increment to a new y component for
      * the PPU address. */
-    if (7 == ppu.scrolly) {
+     ppu.scrolly++;
+    if (8 == ppu.scrolly) {
         register u16 y = (ppu.v_addr & 0x03E0) >> 5;
+        ppu.scrolly = 0;
+        
         /* Swap vertical nametable. */
         if (y == 29) {
             y = 0;
@@ -237,7 +233,6 @@ update:
         }
         ppu.v_addr = (ppu.v_addr & 0xFC1F) | (y << 5);
     }
-    ppu.scrolly = (ppu.scrolly + 1) & 7;    /* & 7 <=> % 8 */
     
     /* Dot 257 */
     ppu.v_addr = (ppu.v_addr & 0x3BE0) | (ppu.t_addr & 0x041F);

@@ -21,6 +21,7 @@
 #include "dbg.h"
 #include "cart.h"
 #include "render.h"
+#include "display.h"
 
 void VNES_Init(void) {
     neslog("Starting emulation...");
@@ -31,7 +32,13 @@ void VNES_Init(void) {
 
 int main(int argc, char **argv) {
     if (argc > 1) {
-		if (0 == strcmp(argv[1], "--test")) {
+        if (0 == strcmp(argv[1], "--disptest")) {
+            vnes_display *disp;
+            Open_Display(&disp);
+            Display_Loop(disp);
+            return 0;
+        }
+		else if (0 == strcmp(argv[1], "--test")) {
 			extern cpu_6502 cpu;
             extern ppu_2c02 ppu;
 			Load_Cartridge("roms/nestest.nes");

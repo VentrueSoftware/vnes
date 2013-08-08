@@ -25,7 +25,9 @@ TARGET_SRC_FILES = cpu.c  	\
                    ines-cart.c  \
                    ppu.c        \
                    render.c     \
-                   dbg.c
+                   dbg.c		\
+                   display.c
+
 
 ifeq ($(MAKECMDGOALS), dbg-gui)
 TARGET_NAME      = dbg-gui
@@ -58,7 +60,7 @@ TARGET_OBJ = $(addprefix $(TARGET_OBJ_DIR)/, $(TARGET_SRC_FILES:.c=.o))
 CC       = gcc
 CFLAGS   = -Wall
 INCLUDES = $(addprefix -I, $(TARGET_INC_DIR))
-LIBS     = -lncurses
+LIBS     = -lncurses -lX11 -lGL -lGLU
 DEFS     = -DUSE_INLINING
 
 ifeq ($(DEBUG), true)
