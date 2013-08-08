@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     if (argc > 1) {
         if (0 == strcmp(argv[1], "--disptest")) {
             vnes_display *disp;
-            Open_Display(&disp);
+            Open_Display(&disp, 512, 480);
             Display_Loop(disp);
             return 0;
         }

@@ -35,7 +35,9 @@ typedef struct vnes_display {
     } src;
 } vnes_display;
 
-int Open_Display(vnes_display **disp);
+int Open_Display(vnes_display **disp, u16 w, u16 h);
+void Close_Display(vnes_display *disp);
 void Display_Loop(vnes_display *disp);
+void Set_Display_Title(vnes_display *disp, const char *format, ...);
 
 #endif /* #ifndef VNES_DISPLAY_H */

@@ -16,6 +16,7 @@
 #include "display.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <GL/gl.h>
@@ -44,9 +45,14 @@ struct win_impl {
     GLXContext               glc;
     XWindowAttributes        gwa;
     XEvent                   xev;
+    
+    /* Window Manager Protocols */
+    struct {
+        Atom delete_window;
+    } wmproto;
 };
 
-int Open_Display(vnes_display **disp) {
+int Open_Display(vnes_display **disp, u16 w, u16 h) {
     struct win_impl *win;
     /* Allocate display memory */
     *disp = (vnes_display *)malloc(sizeof(vnes_display));
@@ -56,6 +62,10 @@ int Open_Display(vnes_display **disp) {
     (*disp)->win = (struct win_impl *)malloc(sizeof(struct win_impl));
     bzero((*disp)->win, sizeof(struct win_impl));
     win = (*disp)->win;
+    
+    /* Assign width/height */
+    win->width = w;
+    win->height = h;
     
     /* Attempt to open the X display */
     win->dpy = XOpenDisplay(NULL);
@@ -83,9 +93,9 @@ int Open_Display(vnes_display **disp) {
     win->swa.event_mask = ExposureMask | KeyPressMask;
     
     /* Create the X Window, make it appear, show the title string. */
-    win->win = XCreateWindow(win->dpy, win->root, 0, 0, 600, 600, 0, win->vi->depth, InputOutput, win->vi->visual, CWColormap | CWEventMask, &(win->swa));
+    win->win = XCreateWindow(win->dpy, win->root, 0, 0, win->width, win->height, 0, win->vi->depth, InputOutput, win->vi->visual, CWColormap | CWEventMask, &(win->swa));
     XMapWindow(win->dpy, win->win);
-    XStoreName(win->dpy, win->win, "[VNES]");
+    Set_Display_Title(*disp, "[VNES]");
     
     /* Create the OpenGL context */
     win->glc = glXCreateContext(win->dpy, win->vi, NULL, GL_TRUE);
@@ -94,12 +104,26 @@ int Open_Display(vnes_display **disp) {
     /* Enable GL Depth buffer */
     glEnable(GL_DEPTH_TEST);
     
+    /* Attach window manager messages */
+    win->wmproto.delete_window = XInternAtom(win->dpy, "WM_DELETE_WINDOW", False);
+    XSetWMProtocols(win->dpy, win->win, &win->wmproto.delete_window, 1);
     return 1;
 err:
     free(win);
     free(*disp);
     *disp = 0;
     return 0;
+}
+
+void Close_Display(vnes_display *disp) {
+    if (!disp) return;
+    struct win_impl *win = disp->win;
+    glXMakeCurrent(win->dpy, None, NULL);
+    glXDestroyContext(win->dpy, win->glc);
+    XDestroyWindow(win->dpy, win->win);
+    XCloseDisplay(win->dpy);
+    free(win);
+    free(disp);
 }
 
 void Test_GL_Render(void) {
@@ -133,16 +157,38 @@ void Display_Loop(vnes_display *disp) {
         if (xev->type == Expose) {
             XGetWindowAttributes(win->dpy, win->win, &(win->gwa));
             glViewport(0, 0, win->gwa.width, win->gwa.height);
+            win->width = win->gwa.width;
+            win->height = win->gwa.height;
+            Set_Display_Title(disp, "[VNES] %ux%u", win->width, win->height);
             Test_GL_Render();
             glXSwapBuffers(win->dpy, win->win);
         } else if (xev->type == KeyPress) {
-            glXMakeCurrent(win->dpy, None, NULL);
-            glXDestroyContext(win->dpy, win->glc);
-            XDestroyWindow(win->dpy, win->win);
-            XCloseDisplay(win->dpy);
-            free(win);
-            free(disp);
-            break;
+            XKeyPressedEvent *keypress = (XKeyPressedEvent *)xev;
+            KeyCode keycode = keypress->keycode;
+            KeySym keysim = XKeycodeToKeysym(win->dpy, keycode, 0);
+            char *key = XKeysymToString(keysim);
+            printf("Key pressed: %s\n", key);
+            if (0 == strcmp(key, "q")) {
+                Close_Display(disp);
+                break;
+            }
+        } else if (xev->type == ClientMessage) {
+            if (win->wmproto.delete_window == (Atom)xev->xclient.data.l[0]) {
+                Close_Display(disp);
+                break;
+            }
+        } else {
+            printf("Unhandled event type: %u\n", xev->type);
         }
     }
+}
+
+void Set_Display_Title(vnes_display *disp, const char *format, ...) {
+    char title[256];
+    va_list args;
+    if (!disp) return;
+    va_start(args, format);
+    vsprintf(title, format, args);
+    XStoreName(disp->win->dpy, disp->win->win, title);
+    va_end(args);
 }
