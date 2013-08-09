@@ -17,15 +17,15 @@ TARGET_SRC_DIR   = $(TARGET_DIR)/src
 TARGET_INC_DIR   = $(TARGET_DIR)/include
 TARGET_OBJ_DIR   = $(TARGET_DIR)/obj
 TARGET_DIST_DIR  = $(TARGET_DIR)/dist
-TARGET_SRC_FILES = cpu.c  	\
-                   mem.c  	\
-                   opcode.c	\
-                   vnes.c	\
-                   cart.c	\
-                   ines-cart.c  \
-                   ppu.c        \
-                   render.c     \
-                   dbg.c		\
+TARGET_SRC_FILES = cpu.c  			\
+                   mem.c  			\
+                   opcode.c			\
+                   vnes.c			\
+                   cart.c			\
+                   ines-cart.c  	\
+                   ppu.c        	\
+                   render.c     	\
+                   dbg-new.c		\
                    display.c
 
 

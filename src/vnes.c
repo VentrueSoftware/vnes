@@ -31,6 +31,14 @@ void VNES_Init(void) {
 }
 
 int main(int argc, char **argv) {
+    Load_Cartridge(argv[1]);
+    VNES_Init();
+    Start_Debug(0);
+    return 0;
+}
+
+#if 0
+int main(int argc, char **argv) {
     vnes_display *disp;
     if (argc > 1) {
         if (0 == strcmp(argv[1], "--disptest")) {
@@ -40,6 +48,9 @@ int main(int argc, char **argv) {
             Display_Loop(disp);
             return 0;
         }
+        Load_Cartridge(argv[1]);
+        VNES_Init();
+        Start_Debug(0);
 		else if (0 == strcmp(argv[1], "--test")) {
 			extern cpu_6502 cpu;
             extern ppu_2c02 ppu;
@@ -59,3 +70,4 @@ int main(int argc, char **argv) {
     Start_Dbg();
     return 0;
 }
+#endif 

@@ -35,10 +35,14 @@ typedef struct vnes_display {
     } src;
 } vnes_display;
 
+typedef int (*input_fn)(vnes_display *, const char *);
+
 int Open_Display(vnes_display **disp, u16 w, u16 h);
 void Close_Display(vnes_display *disp);
-void Display_Loop(vnes_display *disp);
+
+void Display_Loop(vnes_display *disp, input_fn fn);
 void Set_Display_Title(vnes_display *disp, const char *format, ...);
 void Set_Display_Source(vnes_display *disp, void *source, u16 width, u16 height);
+void Update_Display(vnes_display *disp);
 
 #endif /* #ifndef VNES_DISPLAY_H */

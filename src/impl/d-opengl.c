@@ -127,6 +127,8 @@ void Close_Display(vnes_display *disp) {
     glXDestroyContext(win->dpy, win->glc);
     XDestroyWindow(win->dpy, win->win);
     XCloseDisplay(win->dpy);
+
+    free(win->buffer);
     free(win);
     free(disp);
 }
@@ -155,13 +157,13 @@ void Test_GL_Render(GLuint tex) {
     glDisable(GL_TEXTURE_2D);
 }
 
-void Display_Loop(vnes_display *disp) {
+void Display_Loop(vnes_display *disp, input_fn input_func) {
     struct win_impl *win;
     XEvent *xev;
     if (!disp) return;
     win = disp->win;
     xev = &(win->xev);
-    while (1) {
+    while (disp) {
         XNextEvent(win->dpy, xev);
         if (xev->type == Expose) {
             XGetWindowAttributes(win->dpy, win->win, &(win->gwa));
@@ -177,14 +179,13 @@ void Display_Loop(vnes_display *disp) {
             KeySym keysim = XKeycodeToKeysym(win->dpy, keycode, 0);
             char *key = XKeysymToString(keysim);
             printf("Key pressed: %s\n", key);
-            if (0 == strcmp(key, "q")) {
-                Close_Display(disp);
-                break;
+            if (!input_func(disp, key)) {
+                return;
             }
         } else if (xev->type == ClientMessage) {
             if (win->wmproto.delete_window == (Atom)xev->xclient.data.l[0]) {
                 Close_Display(disp);
-                break;
+                return;
             }
         } else {
             printf("Unhandled event type: %u\n", xev->type);
@@ -211,7 +212,6 @@ void Set_Display_Source_Impl(vnes_display *disp) {
     
     /* Generate the new buffer/texture */
     disp->win->buffer = (GLubyte *)malloc(sizeof(GLubyte) * disp->src.width * disp->src.height * 4);
-    memcpy(disp->win->buffer, disp->src.data, sizeof(GLubyte) * disp->src.width * disp->src.height * 4);
     //memset(disp->win->buffer, (GLubyte) 155, sizeof(GLubyte) * disp->src.width * disp->src.height * 4);
     glGenTextures(1, &(disp->win->texid));
     glBindTexture(GL_TEXTURE_2D, disp->win->texid);
@@ -223,4 +223,11 @@ void Set_Display_Source_Impl(vnes_display *disp) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, disp->src.width, disp->src.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, disp->win->buffer);
+}
+
+void Update_Display(vnes_display *disp) {
+    if (!disp) return;
+    memcpy(disp->win->buffer, disp->src.data, sizeof(GLubyte) * disp->src.width * disp->src.height * 4);
+    Test_GL_Render(disp->win->texid);
+    glXSwapBuffers(disp->win->dpy, disp->win->win);
 }

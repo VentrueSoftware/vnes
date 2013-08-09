@@ -79,7 +79,9 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
         ppu.cycles -= 340;
         
         ppu.scanline = (ppu.scanline == 260) ? -1 : ppu.scanline + 1;
-        
+        if (ppu.scanline == -1) {
+			ppu.scrollx = ppu.scrolly = 0;
+		}
         Render_Scanline(ppu.scanline);
         if (ppu.scanline == 241) {
 #if 0
@@ -93,10 +95,8 @@ INLINED void Ppu_Add_Cycles(u32 cycles) {
                 Log_Line("Executing NMI!");
                 Cpu_Nmi();
             }
-            Dump_Render("screen.data");
-            Dump_Name_Tables();
-            Dump_Attr_Tables();
-            Log_Line("Frame written. CPU cycles: %u", Cpu_Get_Cycles());
+            ppu.frame_check = 0;
+            ppu.frame++;
         }
     }
 }

@@ -56,6 +56,8 @@ typedef struct ppu_2c02 {
 	/* PPU Emulation Info */
 	i16 scanline;
 	u32 cycles;
+    u32 frame;
+    u8 frame_check;
 	
     u8 last_write;  /* The value last written to PPU */
     

@@ -22,6 +22,10 @@
 #include "types.h"
 
 /* Initialize Debugger */
+void Start_Debug(u32 flags);
+void End_Debug(int sig);
+
+/* Deprecated */
 void Start_Dbg(void);
 void End_Dbg(int signal);
 

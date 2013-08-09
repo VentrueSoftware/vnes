@@ -35,8 +35,7 @@ static const u32 nes_palette[] = {
     0xFF000000
 };
 
-static u32 render_data[NES_RES_X * NES_RES_Y];
-static u16 render_nums[NES_RES_X * NES_RES_Y];
+static u32 render_data[NES_RES_X * NES_RES_Y] = {255};
 
 INLINED u32 *Get_Render_Buffer(void) {
     return render_data;
@@ -265,13 +264,7 @@ void Dump_Render(char *file) {
         if (y && !(y % 0x10)) fprintf(fp, "\n");
     }
 #else
-    fwrite(render_data, sizeof(u32), NES_RES_X * NES_RES_Y, fp);
-    for (y = 0; y < 240; y++) {
-        for (x = 0; x < 256; x++) {
-            fprintf(fp2, "%04x ", render_nums[(y * NES_RES_X) + x]);
-        }
-        fprintf(fp2, "\n");
-    }
+
 #endif
     fclose(fp);
     fclose(fp2);
