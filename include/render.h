@@ -22,7 +22,7 @@
 #define NES_RES_Y 240
 
 INLINED u32 Sample_Nes_Palette(u8 index);
-
+INLINED u32 *Get_Render_Buffer(void);
 void Render_Scanline(i16 scanline);
 void Dump_Render(char *file);
 void Dump_Pattern_Tables(void);

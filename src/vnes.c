@@ -31,10 +31,10 @@ void VNES_Init(void) {
 }
 
 int main(int argc, char **argv) {
+    vnes_display *disp;
     if (argc > 1) {
         if (0 == strcmp(argv[1], "--disptest")) {
             u32 testsrc[16] = {0xFF00FF00, 0x00FF00FF, 0x00FF00FF, 0xFF00FF00, 0xFF00FF00, 0x00FF00FF, 0x00FF00FF, 0xFF00FF00, 0xFF00FF00, 0x00FF00FF, 0x00FF00FF, 0xFF00FF00, 0xFF00FF00, 0x00FF00FF, 0x00FF00FF, 0xFF00FF00};
-            vnes_display *disp;
             Open_Display(&disp, 512, 480);
             Set_Display_Source(disp, testsrc, 4, 4);
             Display_Loop(disp);

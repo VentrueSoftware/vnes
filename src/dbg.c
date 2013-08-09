@@ -28,6 +28,8 @@
 #include "ppu.h"
 #include "mem.h"
 #include "opcode.h"
+#include "display.h"
+#include "render.h"
 
 #define INFO_COLOR 2
 #define ERROR_COLOR 3
@@ -79,18 +81,29 @@ void Start_Dbg(void) {
     //Accept_Dbg_Input();
     while (cmd != 'q') {
         cmd = getch();
+        Log_Line("%c", cmd);
         switch (cmd) {
             case 's': 
                 Cpu_Step();
                 Log_Instruction();
             break;
-            case 'r': {
+            case 'c': {
                 u8 op;
                 Log_Line("Testing...");
                 while (op_fn[(op = Mem_Fetch(cpu.pc))] != op_fn[0xFF]) {
                     Cpu_Step();
                     Log_Instruction();
                 }
+                break;
+            }
+            case 'r': {
+                vnes_display *disp;
+                if (!Open_Display(&disp, 512, 480)) {
+                    Log_Line("Failed to render display.");
+                    break;
+                }
+                Set_Display_Source(disp, Get_Render_Buffer(), NES_RES_X, NES_RES_Y);
+                Display_Loop(disp);
             }
             default:
             break;
@@ -140,7 +153,8 @@ static void Init_Ncurses(void) {
     keypad(stdscr, TRUE);
     getmaxyx(stdscr, y, x);
 
-    /* Try to see if we have color; if we don't, we use "reverse" */
+    /* Try to s
+ee if we have color; if we don't, we use "reverse" */
     if (has_colors()) {
         start_color();
         

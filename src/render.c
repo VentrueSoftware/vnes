@@ -38,6 +38,10 @@ static const u32 nes_palette[] = {
 static u32 render_data[NES_RES_X * NES_RES_Y];
 static u16 render_nums[NES_RES_X * NES_RES_Y];
 
+INLINED u32 *Get_Render_Buffer(void) {
+    return render_data;
+}
+
 INLINED u32 Sample_Nes_Palette(u8 index) {
     return nes_palette[index];
 }
